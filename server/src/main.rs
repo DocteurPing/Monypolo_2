@@ -9,6 +9,7 @@ use uuid::Uuid;
 use shared::PlayerAction;
 use crate::game_state::{Game, GameState, Player, Tile};
 use crate::server_state::ServerState;
+use shared::action::Action;
 
 #[tokio::main]
 async fn main() {
@@ -57,14 +58,31 @@ async fn handle_connection(socket: tokio::net::TcpStream, state: Arc<ServerState
     // Handle client messages
     loop {
         tokio::select! {
-            Ok(_) = reader.read_line(&mut buf) => {
+            Ok(len) = reader.read_line(&mut buf) => {
+                if len == 0 {
+                    println!("Player {} disconnected", player_id);
+                    break;
+                }
                 println!("Received message: {}", buf.trim());
+                handle_message(&buf, &state, player_id).await;
                 buf.clear();
             }
             Some(msg) = rx.recv() => {
                 writer.write_all(msg.as_bytes()).await.unwrap();
             }
         }
+    }
+}
+
+async fn handle_message(message: &String, state: &Arc<ServerState>, uuid: Uuid) {
+    let action: PlayerAction = serde_json::from_str(&message).unwrap();
+    match action.action_type {
+        Action::Quit => {
+            let mut waiting_room = state.waiting_room.lock().await;
+            waiting_room.players.retain(|player| player.id != uuid);
+            println!("Player {} left waiting room. Total players: {}", uuid, waiting_room.players.len());
+        }
+        _ => {}
     }
 }
 

@@ -51,16 +51,17 @@ async fn main() {
         send_action(input.to_action(), None, &mut writer).await;
 
         if input == "quit" {
+            writer.shutdown().await.unwrap();
             println!("Goodbye!");
             break;
         }
-
     }
 }
 
 async fn send_action(action: Action, data: Option<String>, writer: &mut OwnedWriteHalf) {
     // Send the player's action to the server
     // Create an action to send to the server
+    println!("Sending action: {:?}", action);
     let action = PlayerAction {
         action_type: action,
         data, // Add specific data if required

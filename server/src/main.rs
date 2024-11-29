@@ -34,7 +34,6 @@ async fn handle_connection(socket: tokio::net::TcpStream, state: Arc<ServerState
     // Generate a unique ID for the player
     let player_id = Uuid::new_v4();
 
-    writer.write_all(b"Enter your name: ").await.unwrap();
     reader.read_line(&mut buf).await.unwrap();
     let player_action: PlayerAction = serde_json::from_str(&buf).unwrap();
     buf.clear();
@@ -51,7 +50,7 @@ async fn handle_connection(socket: tokio::net::TcpStream, state: Arc<ServerState
 
         if waiting_room.players.len() == 4 {
             // Start a new game when there are 4 players
-            start_new_game(state.clone()).await;
+            tokio::spawn(start_new_game(Arc::clone(&state)));
         }
     }
 

@@ -1,8 +1,12 @@
+mod tools;
+
 use shared::PlayerAction;
 use std::io;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::tcp::OwnedWriteHalf;
 use tokio::net::TcpStream;
+use shared::action::Action;
+use tools::ToAction;
 
 #[tokio::main]
 async fn main() {
@@ -44,7 +48,7 @@ async fn main() {
         buf.clear();
         io::stdin().read_line(&mut buf).unwrap();
         let input = buf.trim();
-        send_action(input.to_string(), None, &mut writer).await;
+        send_action(input.to_action(), None, &mut writer).await;
 
         if input == "quit" {
             println!("Goodbye!");
@@ -54,7 +58,7 @@ async fn main() {
     }
 }
 
-async fn send_action(action: String, data: Option<String>, writer: &mut OwnedWriteHalf) {
+async fn send_action(action: Action, data: Option<String>, writer: &mut OwnedWriteHalf) {
     // Send the player's action to the server
     // Create an action to send to the server
     let action = PlayerAction {
@@ -75,6 +79,6 @@ async fn send_name(writer: &mut OwnedWriteHalf) {
     io::stdin().read_line(&mut buf).unwrap();
     let name = buf.trim();
 
-    send_action("NAME".parse().unwrap(), Some(name.to_string()), writer).await;
+    send_action(Action::Identify, Some(name.to_string()), writer).await;
 
 }

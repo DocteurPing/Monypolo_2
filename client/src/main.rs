@@ -1,7 +1,6 @@
 mod tools;
 
-use shared::action::Action;
-use shared::PlayerAction;
+use shared::action::{Action, PlayerAction};
 use std::io;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::tcp::OwnedWriteHalf;

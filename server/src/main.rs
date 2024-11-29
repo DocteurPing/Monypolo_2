@@ -1,10 +1,10 @@
 mod game_state;
 mod server_state;
 
-use crate::game_state::{Game, GameState, Player, Tile};
+use crate::game_state::{Game, GameState, Player};
 use crate::server_state::ServerState;
-use shared::action::Action;
-use shared::PlayerAction;
+use shared::action::{Action, PlayerAction};
+use shared::maps::map1::MAP1;
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpListener;
@@ -45,6 +45,8 @@ async fn handle_connection(socket: tokio::net::TcpStream, state: Arc<ServerState
         id: player_id,
         name,
         tx,
+        money: 1500,
+        position: 0,
     };
 
     // Add player to the waiting room
@@ -113,7 +115,7 @@ async fn start_new_game(state: Arc<ServerState>) {
         id: game_id,
         players: players.clone(),
         state: GameState {
-            board: vec![Tile::Go, Tile::Jail, Tile::FreeParking], // Add more tiles here
+            board: MAP1.to_vec(),
             current_turn: 0,
         },
     };

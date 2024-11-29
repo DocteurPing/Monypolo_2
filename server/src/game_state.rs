@@ -1,4 +1,3 @@
-use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
@@ -7,6 +6,8 @@ pub struct Player {
     pub(crate) id: Uuid,
     pub(crate) name: String,
     pub(crate) tx: mpsc::Sender<String>, // Channel to communicate with the player
+    pub(crate) money: u32,
+    pub(crate) position: usize,
 }
 
 #[derive(Debug)]
@@ -21,22 +22,8 @@ pub(crate) struct Game {
     pub(crate) state: GameState,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 pub(crate) struct GameState {
-    pub(crate) board: Vec<Tile>,
+    pub(crate) board: Vec<shared::board::Tile>,
     pub(crate) current_turn: usize,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub(crate) enum Tile {
-    Property {
-        name: String,
-        cost: u32,
-        rent: u32,
-        owner: Option<Uuid>,
-    },
-    Chance(String),
-    Jail,
-    Go,
-    FreeParking,
 }

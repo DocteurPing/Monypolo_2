@@ -1,10 +1,9 @@
 mod game_state;
 mod server_state;
 
-use crate::game_state::{Game, GameState, Player};
+use crate::game_state::{start_new_game, Player};
 use crate::server_state::ServerState;
 use shared::action::{Action, PlayerAction};
-use shared::maps::map1::MAP1;
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpListener;
@@ -69,12 +68,19 @@ async fn handle_connection(socket: tokio::net::TcpStream, state: Arc<ServerState
     loop {
         tokio::select! {
             Ok(len) = reader.read_line(&mut buf) => {
+                let mut waiting_room = state.waiting_room.lock().await;
                 if len == 0 {
                     println!("Player {} disconnected", player_id);
+                    waiting_room.players.retain(|p| p.id != player_id);
+                    println!("Player {} left waiting room. Total players: {}",player_id,waiting_room.players.len());
                     break;
                 }
                 println!("Received message: {}", buf.trim());
-                handle_message(&buf, &state, player_id).await;
+                if waiting_room.players.iter().any(|player| player.id == player_id) {
+                    handle_message(&buf, &state, player_id).await;
+                } else {
+                    handle_message_in_game(&buf, &state, player_id).await;
+                }
                 buf.clear();
             }
             Some(msg) = rx.recv() => {
@@ -84,47 +90,25 @@ async fn handle_connection(socket: tokio::net::TcpStream, state: Arc<ServerState
     }
 }
 
-async fn handle_message(message: &String, state: &Arc<ServerState>, uuid: Uuid) {
+async fn handle_message_in_game(message: &String, state: &Arc<ServerState>, uuid: Uuid) {
     let action: PlayerAction = serde_json::from_str(message).unwrap();
-    match action.action_type {
-        Action::Quit => {
-            let mut waiting_room = state.waiting_room.lock().await;
-            waiting_room.players.retain(|player| player.id != uuid);
-            println!(
-                "Player {} left waiting room. Total players: {}",
-                uuid,
-                waiting_room.players.len()
-            );
+    let mut active_games = state.active_games.lock().await;
+    for (_, mut game) in active_games.iter_mut() {
+        if game.players[game.state.player_turn].id == uuid {
+            match action.action_type {
+                Action::Roll => {
+                    println!("Player {} rolled the dice", uuid);
+                    game.state.advance_turn();
+                }
+                _ => {}
+            }
         }
-        _ => {}
     }
 }
 
-async fn start_new_game(state: Arc<ServerState>) {
-    let mut waiting_room = state.waiting_room.lock().await;
-    let mut active_games = state.active_games.lock().await;
-
-    if waiting_room.players.len() < 4 {
-        return;
-    }
-
-    let players = waiting_room.players.drain(0..4).collect::<Vec<_>>();
-    let game_id = Uuid::new_v4();
-
-    let game = Game {
-        id: game_id,
-        players: players.clone(),
-        state: GameState {
-            board: MAP1.to_vec(),
-            current_turn: 0,
-        },
-    };
-
-    active_games.insert(game_id, game);
-    println!("Started a new game with ID: {}", game_id);
-
-    for player in players {
-        let message = format!("Game started! Your game ID is {}\n", game_id);
-        let _ = player.tx.send(message).await;
+async fn handle_message(message: &String, state: &Arc<ServerState>, uuid: Uuid) {
+    let action: PlayerAction = serde_json::from_str(message).unwrap();
+    match action.action_type {
+        _ => {}
     }
 }

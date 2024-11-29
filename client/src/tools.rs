@@ -8,7 +8,7 @@ impl ToAction for &str {
     fn to_action(self) -> Action {
         match self {
             "identify" => Action::Identify,
-            "quit" => Action::Quit,
+            "roll" => Action::Roll,
             _ => Action::Invalid,
         }
     }

@@ -29,7 +29,11 @@ async fn main() {
             match reader.read_line(&mut buf).await {
                 Ok(0) => break, // Server closed connection
                 Ok(_) => {
+                    #[cfg(debug_assertions)]
                     println!("Server: {}", buf.trim());
+                    if buf.trim() == "Goodbye!" {
+                        break;
+                    }
                 }
                 Err(e) => {
                     eprintln!("Error reading from server: {:?}", e);
@@ -57,7 +61,17 @@ async fn main() {
     }
 }
 
-async fn send_action(action: Action, data: Option<String>, writer: &mut OwnedWriteHalf) {
+async fn send_name(writer: &mut OwnedWriteHalf) {
+    // Get the player's name
+    println!("Enter your name:");
+    let mut buf = String::new();
+    io::stdin().read_line(&mut buf).unwrap();
+    let name = buf.trim();
+
+    send_action(Action::Identify, Some(name.to_string()), writer).await;
+}
+
+pub async fn send_action(action: Action, data: Option<String>, writer: &mut OwnedWriteHalf) {
     // Send the player's action to the server
     // Create an action to send to the server
     println!("Sending action: {:?}", action);
@@ -73,14 +87,4 @@ async fn send_action(action: Action, data: Option<String>, writer: &mut OwnedWri
     {
         eprintln!("Error sending action: {:?}", e);
     }
-}
-
-async fn send_name(writer: &mut OwnedWriteHalf) {
-    // Get the player's name
-    println!("Enter your name:");
-    let mut buf = String::new();
-    io::stdin().read_line(&mut buf).unwrap();
-    let name = buf.trim();
-
-    send_action(Action::Identify, Some(name.to_string()), writer).await;
 }

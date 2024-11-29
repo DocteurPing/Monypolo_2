@@ -1,17 +1,17 @@
 mod tools;
 
+use shared::action::Action;
 use shared::PlayerAction;
 use std::io;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::tcp::OwnedWriteHalf;
 use tokio::net::TcpStream;
-use shared::action::Action;
 use tools::ToAction;
 
 #[tokio::main]
 async fn main() {
     // Connect to the server
-    let mut stream = TcpStream::connect("127.0.0.1:8080")
+    let stream = TcpStream::connect("127.0.0.1:8080")
         .await
         .expect("Failed to connect to server");
 
@@ -68,7 +68,10 @@ async fn send_action(action: Action, data: Option<String>, writer: &mut OwnedWri
     };
 
     let serialized_action = serde_json::to_string(&action).unwrap();
-    if let Err(e) = writer.write_all((serialized_action + "\n").as_bytes()).await {
+    if let Err(e) = writer
+        .write_all((serialized_action + "\n").as_bytes())
+        .await
+    {
         eprintln!("Error sending action: {:?}", e);
     }
 }
@@ -81,5 +84,4 @@ async fn send_name(writer: &mut OwnedWriteHalf) {
     let name = buf.trim();
 
     send_action(Action::Identify, Some(name.to_string()), writer).await;
-
 }

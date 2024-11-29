@@ -1,15 +1,15 @@
-mod server_state;
 mod game_state;
+mod server_state;
 
-use std::sync::Arc;
-use tokio::net::TcpListener;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
-use tokio::sync::mpsc;
-use uuid::Uuid;
-use shared::PlayerAction;
 use crate::game_state::{Game, GameState, Player, Tile};
 use crate::server_state::ServerState;
 use shared::action::Action;
+use shared::PlayerAction;
+use std::sync::Arc;
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::net::TcpListener;
+use tokio::sync::mpsc;
+use uuid::Uuid;
 
 #[tokio::main]
 async fn main() {
@@ -41,13 +41,21 @@ async fn handle_connection(socket: tokio::net::TcpStream, state: Arc<ServerState
     let name = player_action.data.unwrap();
 
     let (tx, mut rx) = mpsc::channel(32); // Player's message channel
-    let player = Player { id: player_id, name, tx };
+    let player = Player {
+        id: player_id,
+        name,
+        tx,
+    };
 
     // Add player to the waiting room
     {
         let mut waiting_room = state.waiting_room.lock().await;
         waiting_room.players.push(player);
-        println!("Player {} joined waiting room. Total players: {}", waiting_room.players.last().unwrap().name, waiting_room.players.len());
+        println!(
+            "Player {} joined waiting room. Total players: {}",
+            waiting_room.players.last().unwrap().name,
+            waiting_room.players.len()
+        );
 
         if waiting_room.players.len() == 4 {
             // Start a new game when there are 4 players
@@ -75,12 +83,16 @@ async fn handle_connection(socket: tokio::net::TcpStream, state: Arc<ServerState
 }
 
 async fn handle_message(message: &String, state: &Arc<ServerState>, uuid: Uuid) {
-    let action: PlayerAction = serde_json::from_str(&message).unwrap();
+    let action: PlayerAction = serde_json::from_str(message).unwrap();
     match action.action_type {
         Action::Quit => {
             let mut waiting_room = state.waiting_room.lock().await;
             waiting_room.players.retain(|player| player.id != uuid);
-            println!("Player {} left waiting room. Total players: {}", uuid, waiting_room.players.len());
+            println!(
+                "Player {} left waiting room. Total players: {}",
+                uuid,
+                waiting_room.players.len()
+            );
         }
         _ => {}
     }
@@ -114,4 +126,3 @@ async fn start_new_game(state: Arc<ServerState>) {
         let _ = player.tx.send(message).await;
     }
 }
-

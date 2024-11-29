@@ -29,7 +29,12 @@ pub(crate) struct GameState {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) enum Tile {
-    Property { name: String, cost: u32, rent: u32, owner: Option<Uuid> },
+    Property {
+        name: String,
+        cost: u32,
+        rent: u32,
+        owner: Option<Uuid>,
+    },
     Chance(String),
     Jail,
     Go,

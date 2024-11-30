@@ -1,11 +1,11 @@
+mod communication;
 mod game_state;
 mod server_state;
-mod communication;
 
-use crate::communication::{handle_message, handle_message_in_game};
+use crate::communication::{handle_message, handle_message_in_game, send_message};
 use crate::game_state::{start_new_game, Player};
 use crate::server_state::ServerState;
-use shared::action::PlayerAction;
+use shared::action::{Action, PlayerAction};
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpListener;
@@ -49,6 +49,7 @@ async fn handle_connection(socket: tokio::net::TcpStream, state: Arc<ServerState
         money: 1500,
         position: 0,
     };
+    send_message(&player, Action::Identify, Some(player_id.to_string())).await;
 
     // Add player to the waiting room
     {
@@ -60,7 +61,7 @@ async fn handle_connection(socket: tokio::net::TcpStream, state: Arc<ServerState
             waiting_room.players.len()
         );
 
-        if waiting_room.players.len() == 1 {
+        if waiting_room.players.len() == 2 {
             // Start a new game when there are 4 players
             tokio::spawn(start_new_game(Arc::clone(&state)));
         }

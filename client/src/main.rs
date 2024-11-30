@@ -1,9 +1,12 @@
 mod tools;
+mod game_state;
+mod communication;
 
-use shared::action::{Action, PlayerAction};
+use crate::communication::{send_action, send_name};
+use crate::game_state::{handle_message_in_game, GamesState};
+use std::collections::HashMap;
 use std::io;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
-use tokio::net::tcp::OwnedWriteHalf;
 use tokio::net::TcpStream;
 use tools::ToAction;
 
@@ -14,12 +17,19 @@ async fn main() {
         .await
         .expect("Failed to connect to server");
 
+    #[cfg(debug_assertions)]
     println!("Connected to server!");
 
     // Split the stream into reader and writer
     let (reader, mut writer) = stream.into_split();
     let mut reader = BufReader::new(reader);
     let mut buf = String::new();
+    let mut state = GamesState {
+        id: Default::default(),
+        players: HashMap::new(),
+        current_turn: 0,
+        player_turn: Default::default(),
+    };
 
     // Spawn a task to handle server messages
     tokio::spawn(async move {
@@ -31,7 +41,7 @@ async fn main() {
                 Ok(_) => {
                     #[cfg(debug_assertions)]
                     println!("Server: {}", buf.trim());
-                    let action: PlayerAction = serde_json::from_str(&buf).unwrap();
+                    handle_message_in_game(&buf, &mut state).await;
                     if buf.trim() == "Goodbye!" {
                         break;
                     }
@@ -59,33 +69,5 @@ async fn main() {
             println!("Goodbye!");
             break;
         }
-    }
-}
-
-async fn send_name(writer: &mut OwnedWriteHalf) {
-    // Get the player's name
-    println!("Enter your name:");
-    let mut buf = String::new();
-    io::stdin().read_line(&mut buf).unwrap();
-    let name = buf.trim();
-
-    send_action(Action::Identify, Some(name.to_string()), writer).await;
-}
-
-pub async fn send_action(action: Action, data: Option<String>, writer: &mut OwnedWriteHalf) {
-    // Send the player's action to the server
-    // Create an action to send to the server
-    println!("Sending action: {:?}", action);
-    let action = PlayerAction {
-        action_type: action,
-        data, // Add specific data if required
-    };
-
-    let serialized_action = serde_json::to_string(&action).unwrap();
-    if let Err(e) = writer
-        .write_all((serialized_action + "\n").as_bytes())
-        .await
-    {
-        eprintln!("Error sending action: {:?}", e);
     }
 }

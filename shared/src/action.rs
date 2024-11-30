@@ -2,9 +2,11 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Action {
+    GameStart,
     Identify,
     Roll,
     TimeToPlay,
+    Move,
     Invalid,
 }
 

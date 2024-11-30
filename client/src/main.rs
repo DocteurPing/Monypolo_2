@@ -2,7 +2,7 @@ mod tools;
 
 use shared::action::{Action, PlayerAction};
 use std::io;
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::net::tcp::OwnedWriteHalf;
 use tokio::net::TcpStream;
 use tools::ToAction;
@@ -31,6 +31,7 @@ async fn main() {
                 Ok(_) => {
                     #[cfg(debug_assertions)]
                     println!("Server: {}", buf.trim());
+                    let action: PlayerAction = serde_json::from_str(&buf).unwrap();
                     if buf.trim() == "Goodbye!" {
                         break;
                     }

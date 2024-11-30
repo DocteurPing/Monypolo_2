@@ -1,3 +1,4 @@
+use crate::communication::send_message;
 use crate::server_state::ServerState;
 use shared::maps::map1::MAP1;
 use std::sync::Arc;
@@ -35,7 +36,7 @@ pub(crate) struct GameState {
 impl GameState {
     pub(crate) fn advance_turn(&mut self) {
         self.current_turn += 1;
-        self.player_turn = (self.player_turn + 1) % 4;
+        //self.player_turn = (self.player_turn + 1) % 4;
     }
 }
 
@@ -43,11 +44,11 @@ pub(crate) async fn start_new_game(state: Arc<ServerState>) {
     let mut waiting_room = state.waiting_room.lock().await;
     let mut active_games = state.active_games.lock().await;
 
-    if waiting_room.players.len() < 4 {
+    if waiting_room.players.len() < 1 {
         return;
     }
 
-    let mut players = waiting_room.players.drain(0..4).collect::<Vec<_>>();
+    let players = waiting_room.players.drain(0..1).collect::<Vec<_>>();
     let game_id = Uuid::new_v4();
 
     let game = Game {
@@ -64,8 +65,7 @@ pub(crate) async fn start_new_game(state: Arc<ServerState>) {
     println!("Started a new game with ID: {}", game_id);
 
     for player in &players {
-        let message = format!("Game started! Your game ID is {}\n", game_id);
-        let _ = player.tx.send(message).await;
+        send_message(player, shared::action::Action::GameStart, Some(game_id.to_string())).await;
     }
 }
 

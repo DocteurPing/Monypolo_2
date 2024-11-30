@@ -1,9 +1,11 @@
 mod game_state;
 mod server_state;
+mod communication;
 
+use crate::communication::{handle_message, handle_message_in_game};
 use crate::game_state::{start_new_game, Player};
 use crate::server_state::ServerState;
-use shared::action::{Action, PlayerAction};
+use shared::action::PlayerAction;
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpListener;
@@ -58,7 +60,7 @@ async fn handle_connection(socket: tokio::net::TcpStream, state: Arc<ServerState
             waiting_room.players.len()
         );
 
-        if waiting_room.players.len() == 4 {
+        if waiting_room.players.len() == 1 {
             // Start a new game when there are 4 players
             tokio::spawn(start_new_game(Arc::clone(&state)));
         }
@@ -87,28 +89,5 @@ async fn handle_connection(socket: tokio::net::TcpStream, state: Arc<ServerState
                 writer.write_all(msg.as_bytes()).await.unwrap();
             }
         }
-    }
-}
-
-async fn handle_message_in_game(message: &String, state: &Arc<ServerState>, uuid: Uuid) {
-    let action: PlayerAction = serde_json::from_str(message).unwrap();
-    let mut active_games = state.active_games.lock().await;
-    for (_, mut game) in active_games.iter_mut() {
-        if game.players[game.state.player_turn].id == uuid {
-            match action.action_type {
-                Action::Roll => {
-                    println!("Player {} rolled the dice", uuid);
-                    game.state.advance_turn();
-                }
-                _ => {}
-            }
-        }
-    }
-}
-
-async fn handle_message(message: &String, state: &Arc<ServerState>, uuid: Uuid) {
-    let action: PlayerAction = serde_json::from_str(message).unwrap();
-    match action.action_type {
-        _ => {}
     }
 }

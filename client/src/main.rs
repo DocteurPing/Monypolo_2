@@ -5,6 +5,7 @@ mod tools;
 use crate::communication::{send_action, send_name};
 use crate::game_state::{handle_message_in_game, GamesState};
 use shared::maps::map1::MAP1;
+use shared::maps::map_jail::MAP_JAIL;
 use std::collections::HashMap;
 use std::io;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -30,7 +31,7 @@ async fn main() {
         players: HashMap::new(),
         current_turn: 0,
         player_turn: Default::default(),
-        board: MAP1.clone(),
+        board: MAP_JAIL.clone(),
     };
 
     // Spawn a task to handle server messages

@@ -144,7 +144,7 @@ lazy_static! {
             level: PropertyLevel::None,
             owner: None,
         },
-        Tile::Jail,
+        Tile::GoToJail,
         Tile::Property {
             name: "Pacific Avenue".to_string(),
             cost: vec![300],

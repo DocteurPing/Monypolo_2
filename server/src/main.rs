@@ -49,6 +49,8 @@ async fn handle_connection(socket: tokio::net::TcpStream, state: Arc<ServerState
         tx,
         money: 1500,
         position: 0,
+        is_in_jail: false,
+        jail_turns: 0,
     };
     send_message(&player, Action::Identify, Some(player_id.to_string())).await;
 

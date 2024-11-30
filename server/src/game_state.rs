@@ -1,6 +1,7 @@
 use crate::communication::send_to_all_players;
 use crate::server_state::ServerState;
 use shared::maps::map1::MAP1;
+use shared::maps::map_jail::MAP_JAIL;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use uuid::Uuid;
@@ -12,6 +13,8 @@ pub struct Player {
     pub(crate) tx: mpsc::Sender<String>, // Channel to communicate with the player
     pub(crate) money: u32,
     pub(crate) position: usize,
+    pub(crate) is_in_jail: bool,
+    pub(crate) jail_turns: u8,
 }
 
 #[derive(Debug)]
@@ -55,7 +58,7 @@ pub(crate) async fn start_new_game(state: Arc<ServerState>) {
     let game = Game {
         id: game_id,
         players: players.clone(),
-        board: MAP1.clone(),
+        board: MAP_JAIL.clone(),
         current_turn: 0,
         player_turn: 0,
     };

@@ -21,6 +21,7 @@ pub enum Tile {
     },
     Chance(String),
     Jail,
+    GoToJail,
     Go,
     FreeParking,
     Railroad {

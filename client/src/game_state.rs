@@ -7,6 +7,7 @@ use uuid::Uuid;
 pub(crate) struct Player {
     pub(crate) money: u32,
     pub(crate) position: usize,
+    pub(crate) is_in_jail: bool,
 }
 
 pub(crate) struct GamesState {
@@ -33,6 +34,7 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &mut GamesState
                     Player {
                         money: 1500,
                         position: 0,
+                        is_in_jail: false,
                     },
                 );
             }
@@ -94,6 +96,19 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &mut GamesState
                 );
                 println!("Property is now {:?}", state.board[player.position]);
             }
+        }
+        Action::GoToJail => {
+            let player = state.players.get_mut(&state.player_turn).unwrap();
+            player.position = state
+                .board
+                .iter()
+                .position(|tile| match tile {
+                    shared::board::Tile::Jail => true,
+                    _ => false,
+                })
+                .unwrap();
+            player.is_in_jail = true;
+            println!("Player {} is in jail", state.player_turn);
         }
         _ => {}
     }

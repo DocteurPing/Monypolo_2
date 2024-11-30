@@ -15,6 +15,8 @@ pub enum Action {
     Move,
     Invalid,
     BuyAll,
+    GoToJail,
+    FreeFromJail,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

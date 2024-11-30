@@ -2,7 +2,7 @@ use crate::communication::send_to_all_players;
 use crate::game_state::{Game, Player};
 use shared::action::Action::PayRent;
 use shared::action::{Action, BuyPropertyData, PayRentData};
-use shared::board::Tile::Property;
+use shared::board::Tile::{Property, Railroad};
 use uuid::Uuid;
 
 pub(crate) async fn roll_dice(game: &mut Game, uuid: uuid::Uuid) {
@@ -25,53 +25,20 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: uuid::Uuid) {
         Some(game.players[game.player_turn].position.to_string()),
     )
     .await;
-    match &game.board[game.players[game.player_turn].position] {
-        shared::board::Tile::Property {
+    match game.board[game.players[game.player_turn].position].clone() {
+        Property {
             name,
             cost,
             rent,
             level,
             owner,
         } => {
-            if owner.is_some() && owner.unwrap() != uuid {
-                let rent_price = rent[level.clone() as usize];
-                game.players[game.player_turn].money -= rent_price;
-                let mut owner_player: &mut Player = game
-                    .players
-                    .iter_mut()
-                    .find(|player| player.id == owner.unwrap())
-                    .unwrap();
-                owner_player.money += rent_price;
-                println!(
-                    "Player {} paid rent of {} to Player {}",
-                    uuid, rent_price, owner_player.id
-                );
-                let pay_rent_data = PayRentData {
-                    rent: rent_price,
-                    owner: owner_player.id,
-                    player: uuid,
-                };
-                send_to_all_players(
-                    &game.players,
-                    PayRent,
-                    Some(serde_json::to_string(&pay_rent_data).unwrap()),
-                )
-                .await;
-            } else {
-                send_to_all_players(
-                    &game.players,
-                    Action::AskBuyProperty,
-                    Some(
-                        serde_json::to_string(&BuyPropertyData {
-                            position: game.players[game.player_turn].position as u32,
-                            player: uuid,
-                        })
-                        .unwrap(),
-                    ),
-                )
-                .await;
-                return;
-            }
+            pay_rent_or_buy(game, &uuid, rent[level.clone() as usize], &owner).await;
+            return;
+        }
+        shared::board::Tile::Railroad { owner, .. } => {
+            pay_rent_or_buy(game, &uuid, 25, &owner).await;
+            return;
         }
         shared::board::Tile::Chance { .. } => {}
         shared::board::Tile::Go => {}
@@ -82,39 +49,92 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: uuid::Uuid) {
     game.advance_turn().await;
 }
 
+async fn pay_rent_or_buy(
+    game: &mut Game,
+    uuid: &Uuid,
+    rent_price: u32,
+    owner: &Option<Uuid>,
+) {
+    if owner.is_some() && owner.unwrap() != *uuid {
+        game.players[game.player_turn].money -= rent_price;
+        let mut owner_player: &mut Player = game
+            .players
+            .iter_mut()
+            .find(|player| player.id == owner.unwrap())
+            .unwrap();
+        owner_player.money += rent_price;
+        println!(
+            "Player {} paid rent of {} to Player {}",
+            uuid, rent_price, owner_player.id
+        );
+        let pay_rent_data = PayRentData {
+            rent: rent_price,
+            owner: owner_player.id,
+            player: *uuid,
+        };
+        send_to_all_players(
+            &game.players,
+            PayRent,
+            Some(serde_json::to_string(&pay_rent_data).unwrap()),
+        )
+        .await;
+        game.advance_turn().await;
+    } else {
+        send_to_all_players(
+            &game.players,
+            Action::AskBuyProperty,
+            Some(
+                serde_json::to_string(&BuyPropertyData {
+                    position: game.players[game.player_turn].position as u32,
+                    player: *uuid,
+                })
+                .unwrap(),
+            ),
+        )
+        .await;
+    }
+}
+
 pub(crate) async fn buy_property(uuid: Uuid, game: &mut Game) {
-    // Buy property
-    let tile = &mut game.board[game.players[game.player_turn].position];
-    if let Property {
-        ref mut owner,
-        cost,
-        ref mut level,
-        ..
-    } = tile
-    {
-        if owner.is_none() {
-            let player = game.players.iter_mut().find(|p| p.id == uuid).unwrap();
-            if player.money < cost[0] {
-                println!("Player {} does not have enough money to buy property", uuid);
-                game.advance_turn().await;
-                return;
-            }
-            println!("Player {} bought property", uuid);
-            player.money -= cost[0];
-            *owner = Some(uuid);
-            send_to_all_players(
-                &game.players,
-                Action::BuyProperty,
-                Some(
-                    serde_json::to_string(&BuyPropertyData {
+    let mut tile = &mut game.board[game.players[game.player_turn].position];
+    let player = game.players.iter_mut().find(|p| p.id == uuid).unwrap();
+
+    match tile {
+        Property { ref mut owner, cost, .. } if owner.is_none() => {
+            if player.money >= cost[0] {
+                player.money -= cost[0];
+                *owner = Some(uuid);
+                println!("Player {} bought property", uuid);
+                send_to_all_players(
+                    &game.players,
+                    Action::BuyProperty,
+                    Some(serde_json::to_string(&BuyPropertyData {
                         player: uuid,
                         position: game.players[game.player_turn].position as u32,
-                    })
-                    .unwrap(),
-                ),
-            )
-            .await;
-            game.advance_turn().await;
+                    }).unwrap()),
+                ).await;
+            } else {
+                println!("Player {} does not have enough money to buy property", uuid);
+            }
         }
+        Railroad { ref mut owner, cost } if owner.is_none() => {
+            if player.money >= *cost {
+                player.money -= *cost;
+                *owner = Some(uuid);
+                println!("Player {} bought property", uuid);
+                send_to_all_players(
+                    &game.players,
+                    Action::BuyProperty,
+                    Some(serde_json::to_string(&BuyPropertyData {
+                        player: uuid,
+                        position: game.players[game.player_turn].position as u32,
+                    }).unwrap()),
+                ).await;
+            } else {
+                println!("Player {} does not have enough money to buy property", uuid);
+            }
+        }
+        _ => {}
     }
+    game.advance_turn().await;
 }

@@ -23,7 +23,10 @@ pub enum Tile {
     Jail,
     Go,
     FreeParking,
-    Railroad,
+    Railroad {
+        owner: Option<Uuid>,
+        cost: u32,
+    },
     Utility,
     Tax,
     LuxuryTax,

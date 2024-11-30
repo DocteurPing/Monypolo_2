@@ -20,7 +20,10 @@ lazy_static! {
             owner: None,
         },
         Tile::Tax,
-        Tile::Railroad,
+        Tile::Railroad {
+            owner: None,
+            cost: 200,
+        },
         Tile::Property {
             name: "Oriental Avenue".to_string(),
             cost: vec![100],
@@ -66,7 +69,10 @@ lazy_static! {
             level: PropertyLevel::None,
             owner: None,
         },
-        Tile::Railroad,
+        Tile::Railroad {
+            owner: None,
+            cost: 200,
+        },
         Tile::Property {
             name: "St. James Place".to_string(),
             cost: vec![180],
@@ -112,7 +118,10 @@ lazy_static! {
             level: PropertyLevel::None,
             owner: None,
         },
-        Tile::Railroad,
+        Tile::Railroad {
+            owner: None,
+            cost: 200,
+        },
         Tile::Property {
             name: "Atlantic Avenue".to_string(),
             cost: vec![260],
@@ -158,7 +167,10 @@ lazy_static! {
             level: PropertyLevel::None,
             owner: None,
         },
-        Tile::Railroad,
+        Tile::Railroad {
+            owner: None,
+            cost: 200,
+        },
         Tile::Chance("Chance".to_string()),
         Tile::Property {
             name: "Park Place".to_string(),

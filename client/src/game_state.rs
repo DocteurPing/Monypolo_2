@@ -13,7 +13,7 @@ pub(crate) struct GamesState {
     pub(crate) player_turn: Uuid,
 }
 
-pub(crate) async fn handle_message_in_game(message: &String, state: &mut GamesState) {
+pub(crate) async fn handle_message_in_game(message: &str, state: &mut GamesState) {
     let action: PlayerAction = serde_json::from_str(message).unwrap();
     match action.action_type {
         Action::GameStart => {
@@ -23,7 +23,13 @@ pub(crate) async fn handle_message_in_game(message: &String, state: &mut GamesSt
             println!("Players ID: {:?}", players_id);
             // Add a player for number of player stored in data
             for id in players_id {
-                state.players.insert(id.parse::<Uuid>().unwrap(), Player { money: 1500, position: 0 });
+                state.players.insert(
+                    id.parse::<Uuid>().unwrap(),
+                    Player {
+                        money: 1500,
+                        position: 0,
+                    },
+                );
             }
         }
         Action::PlayerTurn => {
@@ -38,7 +44,10 @@ pub(crate) async fn handle_message_in_game(message: &String, state: &mut GamesSt
         Action::Roll => {
             let roll = action.data.unwrap().parse::<u8>().unwrap();
             state.players.get_mut(&state.player_turn).unwrap().position += roll as usize;
-            println!("Player moved to position {}", state.players.get(&state.player_turn).unwrap().position);
+            println!(
+                "Player moved to position {}",
+                state.players.get(&state.player_turn).unwrap().position
+            );
         }
         _ => {}
     }

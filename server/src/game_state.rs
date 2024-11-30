@@ -37,7 +37,12 @@ impl Game {
     pub(crate) async fn advance_turn(&mut self) {
         self.state.current_turn += 1;
         self.state.player_turn = (self.state.player_turn + 1) % self.players.len();
-        send_to_all_players(&self.players, shared::action::Action::PlayerTurn, Some(self.players[self.state.player_turn].id.to_string())).await;
+        send_to_all_players(
+            &self.players,
+            shared::action::Action::PlayerTurn,
+            Some(self.players[self.state.player_turn].id.to_string()),
+        )
+        .await;
     }
 }
 
@@ -67,10 +72,11 @@ pub(crate) async fn start_new_game(state: Arc<ServerState>) {
 
     for player in &players {
         // get all the ids of the players in the game in a string
-        let player_ids = players.iter().map(|p| p.id.to_string()).collect::<Vec<_>>().join(",");
+        let player_ids = players
+            .iter()
+            .map(|p| p.id.to_string())
+            .collect::<Vec<_>>()
+            .join(",");
         send_message(player, shared::action::Action::GameStart, Some(player_ids)).await;
     }
 }
-
-
-

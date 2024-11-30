@@ -1,12 +1,12 @@
-mod tools;
-mod game_state;
 mod communication;
+mod game_state;
+mod tools;
 
 use crate::communication::{send_action, send_name};
 use crate::game_state::{handle_message_in_game, GamesState};
 use std::collections::HashMap;
 use std::io;
-use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::TcpStream;
 use tools::ToAction;
 

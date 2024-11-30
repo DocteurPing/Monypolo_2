@@ -2,10 +2,12 @@ use shared::action::{Action, PlayerAction};
 use std::collections::HashMap;
 use uuid::Uuid;
 
+#[derive(Debug)]
 pub(crate) struct Player {
     pub(crate) money: u32,
     pub(crate) position: usize,
 }
+
 pub(crate) struct GamesState {
     pub(crate) id: Uuid,
     pub(crate) players: HashMap<Uuid, Player>,
@@ -51,6 +53,17 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &mut GamesState
                 "Player moved to position {} tile {:?}",
                 state.players.get(&state.player_turn).unwrap().position,
                 state.board[state.players.get(&state.player_turn).unwrap().position]
+            );
+        }
+        Action::PayRent => {
+            let data: shared::action::PayRentData =
+                serde_json::from_str(&action.data.unwrap()).unwrap();
+            let rent_price = data.rent;
+            state.players.get_mut(&data.player).unwrap().money -= rent_price;
+            state.players.get_mut(&data.owner).unwrap().money += rent_price;
+            println!(
+                "Player {} paid rent of {} to Player {}",
+                data.player, rent_price, data.owner
             );
         }
         _ => {}

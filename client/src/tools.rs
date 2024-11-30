@@ -9,6 +9,7 @@ impl ToAction for &str {
         match self {
             "identify" => Action::Identify,
             "roll" => Action::Roll,
+            "buy_all" => Action::BuyAll,
             _ => Action::Invalid,
         }
     }

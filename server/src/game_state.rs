@@ -23,11 +23,6 @@ pub(crate) struct WaitingRoom {
 pub(crate) struct Game {
     pub(crate) id: Uuid,
     pub(crate) players: Vec<Player>,
-    pub(crate) state: GameState,
-}
-
-#[derive(Debug)]
-pub(crate) struct GameState {
     pub(crate) board: Vec<shared::board::Tile>,
     pub(crate) current_turn: usize,
     pub(crate) player_turn: usize,
@@ -35,12 +30,12 @@ pub(crate) struct GameState {
 
 impl Game {
     pub(crate) async fn advance_turn(&mut self) {
-        self.state.current_turn += 1;
-        self.state.player_turn = (self.state.player_turn + 1) % self.players.len();
+        self.current_turn += 1;
+        self.player_turn = (self.player_turn + 1) % self.players.len();
         send_to_all_players(
             &self.players,
             shared::action::Action::PlayerTurn,
-            Some(self.players[self.state.player_turn].id.to_string()),
+            Some(self.players[self.player_turn].id.to_string()),
         )
         .await;
     }
@@ -60,18 +55,16 @@ pub(crate) async fn start_new_game(state: Arc<ServerState>) {
     let game = Game {
         id: game_id,
         players: players.clone(),
-        state: GameState {
-            board: MAP1.clone(),
-            current_turn: 0,
-            player_turn: 0,
-        },
+        board: MAP1.clone(),
+        current_turn: 0,
+        player_turn: 0,
     };
 
     active_games.insert(game_id, game);
     println!("Started a new game with ID: {}", game_id);
 
-    let mut current_game = active_games.get_mut(&game_id).unwrap();
-    current_game.state.player_turn = rand::random::<u8>() as usize % (players.len() - 1);
+    let current_game = active_games.get_mut(&game_id).unwrap();
+    current_game.player_turn = rand::random::<u8>() as usize % (players.len() - 1);
     let player_ids = players
         .iter()
         .map(|p| p.id.to_string())
@@ -86,7 +79,7 @@ pub(crate) async fn start_new_game(state: Arc<ServerState>) {
     send_to_all_players(
         &players,
         shared::action::Action::PlayerTurn,
-        Some(players[current_game.state.player_turn].id.to_string()),
+        Some(players[current_game.player_turn].id.to_string()),
     )
     .await;
 }

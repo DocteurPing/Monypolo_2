@@ -1,6 +1,8 @@
+use crate::action::roll_dice;
 use crate::game_state::Player;
 use crate::server_state::ServerState;
 use shared::action::{Action, PlayerAction};
+use shared::board::Tile::Property;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -27,24 +29,19 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &Arc<ServerStat
     let action: PlayerAction = serde_json::from_str(message).unwrap();
     let mut active_games = state.active_games.lock().await;
     for (_, game) in active_games.iter_mut() {
-        if game.players[game.state.player_turn].id == uuid {
+        if game.players[game.player_turn].id == uuid {
             match action.action_type {
                 Action::Roll => {
-                    println!("Player {} rolled the dice", uuid);
-                    // Generate random number between 2 and 12
-                    let roll = rand::random::<u8>() % 6 + 1 + rand::random::<u8>() % 6 + 1;
-                    game.players[game.state.player_turn].position += roll as usize;
-                    println!(
-                        "Player {} moved to position {}",
-                        uuid, game.players[game.state.player_turn].position
-                    );
-                    send_to_all_players(
-                        &game.players,
-                        Action::Move,
-                        Some(game.players[game.state.player_turn].position.to_string()),
-                    )
-                    .await;
-                    game.advance_turn().await;
+                    roll_dice(game, uuid).await;
+                }
+                Action::BuyAll => {
+                    // Buy all properties
+                    println!("Player {} bought all properties", uuid);
+                    for tile in game.board.iter_mut() {
+                        if let Property { ref mut owner, .. } = tile {
+                            *owner = Some(uuid);
+                        }
+                    }
                 }
                 _ => {}
             }

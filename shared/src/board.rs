@@ -2,11 +2,12 @@ use uuid::Uuid;
 
 #[derive(Debug, Clone)]
 pub enum PropertyLevel {
-    House1,
-    House2,
-    House3,
-    House4,
-    Hotel,
+    None = 0,
+    House1 = 1,
+    House2 = 2,
+    House3 = 3,
+    House4 = 4,
+    Hotel = 5,
 }
 
 #[derive(Debug, Clone)]

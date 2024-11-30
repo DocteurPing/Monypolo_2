@@ -1,3 +1,4 @@
+mod action;
 mod communication;
 mod game_state;
 mod server_state;

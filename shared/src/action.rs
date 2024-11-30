@@ -9,6 +9,9 @@ pub enum Action {
     Roll,
     TimeToPlay,
     PayRent,
+    AskBuyProperty,
+    BuyProperty,
+    SkipBuyProperty,
     Move,
     Invalid,
     BuyAll,
@@ -24,5 +27,11 @@ pub struct PlayerAction {
 pub struct PayRentData {
     pub rent: u32,
     pub owner: Uuid,
+    pub player: Uuid,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct BuyPropertyData {
+    pub position: u32,
     pub player: Uuid,
 }

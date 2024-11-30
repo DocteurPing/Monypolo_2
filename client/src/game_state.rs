@@ -1,4 +1,5 @@
 use shared::action::{Action, PlayerAction};
+use shared::board::Tile::Property;
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -48,7 +49,7 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &mut GamesState
         Action::Move => {
             let roll = action.data.unwrap().parse::<u8>().unwrap();
             println!("uuid: {:?}", state.player_turn);
-            state.players.get_mut(&state.player_turn).unwrap().position += roll as usize;
+            state.players.get_mut(&state.player_turn).unwrap().position = roll as usize;
             println!(
                 "Player moved to position {} tile {:?}",
                 state.players.get(&state.player_turn).unwrap().position,
@@ -65,6 +66,34 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &mut GamesState
                 "Player {} paid rent of {} to Player {}",
                 data.player, rent_price, data.owner
             );
+        }
+        Action::AskBuyProperty => {
+            let buy_property_data: shared::action::BuyPropertyData =
+                serde_json::from_str(&action.data.unwrap()).unwrap();
+            println!(
+                "Player {} asked to buy property {}",
+                buy_property_data.player, buy_property_data.position
+            );
+        }
+        Action::BuyProperty => {
+            let buy_property_data: shared::action::BuyPropertyData =
+                serde_json::from_str(&action.data.unwrap()).unwrap();
+            let player = state.players.get_mut(&buy_property_data.player).unwrap();
+            // Get the property tile
+            if let Property {
+                ref mut owner,
+                cost,
+                ..
+            } = &mut state.board[player.position]
+            {
+                player.money -= cost[0];
+                *owner = Some(buy_property_data.player);
+                println!(
+                    "Player {} bought property {}",
+                    buy_property_data.player, buy_property_data.position
+                );
+                println!("Property is now {:?}", state.board[player.position]);
+            }
         }
         _ => {}
     }

@@ -1,4 +1,4 @@
-use crate::action::roll_dice;
+use crate::action::{buy_property, roll_dice};
 use crate::game_state::Player;
 use crate::server_state::ServerState;
 use shared::action::{Action, PlayerAction};
@@ -33,6 +33,13 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &Arc<ServerStat
             match action.action_type {
                 Action::Roll => {
                     roll_dice(game, uuid).await;
+                }
+                Action::BuyProperty => {
+                    buy_property(uuid, game).await;
+                }
+                Action::SkipBuyProperty => {
+                    println!("Player {} skipped buying property", uuid);
+                    game.advance_turn().await;
                 }
                 Action::BuyAll => {
                     // Buy all properties

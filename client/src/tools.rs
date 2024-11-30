@@ -10,6 +10,8 @@ impl ToAction for &str {
             "identify" => Action::Identify,
             "roll" => Action::Roll,
             "buy_all" => Action::BuyAll,
+            "buy" => Action::BuyProperty,
+            "skip" => Action::SkipBuyProperty,
             _ => Action::Invalid,
         }
     }

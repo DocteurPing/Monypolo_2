@@ -1,4 +1,4 @@
-use crate::communication::{send_message, send_to_all_players};
+use crate::communication::send_to_all_players;
 use crate::server_state::ServerState;
 use shared::maps::map1::MAP1;
 use std::sync::Arc;
@@ -61,7 +61,7 @@ pub(crate) async fn start_new_game(state: Arc<ServerState>) {
         id: game_id,
         players: players.clone(),
         state: GameState {
-            board: MAP1.to_vec(),
+            board: MAP1.clone(),
             current_turn: 0,
             player_turn: 0,
         },
@@ -70,13 +70,23 @@ pub(crate) async fn start_new_game(state: Arc<ServerState>) {
     active_games.insert(game_id, game);
     println!("Started a new game with ID: {}", game_id);
 
-    for player in &players {
-        // get all the ids of the players in the game in a string
-        let player_ids = players
-            .iter()
-            .map(|p| p.id.to_string())
-            .collect::<Vec<_>>()
-            .join(",");
-        send_message(player, shared::action::Action::GameStart, Some(player_ids)).await;
-    }
+    let mut current_game = active_games.get_mut(&game_id).unwrap();
+    current_game.state.player_turn = rand::random::<u8>() as usize % (players.len() - 1);
+    let player_ids = players
+        .iter()
+        .map(|p| p.id.to_string())
+        .collect::<Vec<_>>()
+        .join(",");
+    send_to_all_players(
+        &players,
+        shared::action::Action::GameStart,
+        Some(player_ids),
+    )
+    .await;
+    send_to_all_players(
+        &players,
+        shared::action::Action::PlayerTurn,
+        Some(players[current_game.state.player_turn].id.to_string()),
+    )
+    .await;
 }

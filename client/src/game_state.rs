@@ -11,6 +11,7 @@ pub(crate) struct GamesState {
     pub(crate) players: HashMap<Uuid, Player>,
     pub(crate) current_turn: usize,
     pub(crate) player_turn: Uuid,
+    pub(crate) board: Vec<shared::board::Tile>,
 }
 
 pub(crate) async fn handle_message_in_game(message: &str, state: &mut GamesState) {
@@ -23,6 +24,7 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &mut GamesState
             println!("Players ID: {:?}", players_id);
             // Add a player for number of player stored in data
             for id in players_id {
+                println!("Player {} joined the game", id.parse::<Uuid>().unwrap());
                 state.players.insert(
                     id.parse::<Uuid>().unwrap(),
                     Player {
@@ -41,12 +43,14 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &mut GamesState
             state.id = player_id.parse::<Uuid>().unwrap();
             println!("Player identified with ID: {}", player_id);
         }
-        Action::Roll => {
+        Action::Move => {
             let roll = action.data.unwrap().parse::<u8>().unwrap();
+            println!("uuid: {:?}", state.player_turn);
             state.players.get_mut(&state.player_turn).unwrap().position += roll as usize;
             println!(
-                "Player moved to position {}",
-                state.players.get(&state.player_turn).unwrap().position
+                "Player moved to position {} tile {:?}",
+                state.players.get(&state.player_turn).unwrap().position,
+                state.board[state.players.get(&state.player_turn).unwrap().position]
             );
         }
         _ => {}

@@ -38,8 +38,8 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &Arc<ServerStat
                         "Player {} moved to position {}",
                         uuid, game.players[game.state.player_turn].position
                     );
-                    send_message(
-                        &game.players[game.state.player_turn],
+                    send_to_all_players(
+                        &game.players,
                         Action::Move,
                         Some(game.players[game.state.player_turn].position.to_string()),
                     )

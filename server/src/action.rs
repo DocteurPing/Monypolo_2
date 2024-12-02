@@ -6,7 +6,7 @@ use shared::action::{Action, BuyPropertyData, DiceRollData, PayRentData, PlayerG
 use shared::board::Tile::*;
 use uuid::Uuid;
 
-pub(crate) async fn roll_dice(game: &mut Game, uuid: uuid::Uuid) {
+pub(crate) async fn roll_dice(game: &mut Game, uuid: Uuid) {
     println!("Player {} rolled the dice", uuid);
     // Generate random number between 2 and 12
     let roll1 = rand::random::<u8>() % 6 + 1;
@@ -66,11 +66,10 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: uuid::Uuid) {
     .await;
     match game.board[game.players[game.player_turn].position].clone() {
         Property {
-            name,
-            cost,
             rent,
             level,
             owner,
+            ..
         } => {
             pay_rent_or_buy(game, &uuid, rent[level.clone() as usize], &owner).await;
             return;
@@ -86,7 +85,7 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: uuid::Uuid) {
                 &game.players,
                 Action::PlayerGoTile,
                 Some(
-                    serde_json::to_string(&PlayerGoTileData {
+                    to_string(&PlayerGoTileData {
                         player: game.players[game.player_turn].id,
                         amount,
                     })
@@ -138,7 +137,7 @@ async fn pay_rent_or_buy(game: &mut Game, uuid: &Uuid, rent_price: u32, owner: &
         send_to_all_players(
             &game.players,
             PayRent,
-            Some(serde_json::to_string(&pay_rent_data).unwrap()),
+            Some(to_string(&pay_rent_data).unwrap()),
         )
         .await;
         game.advance_turn().await;
@@ -147,7 +146,7 @@ async fn pay_rent_or_buy(game: &mut Game, uuid: &Uuid, rent_price: u32, owner: &
             &game.players,
             Action::AskBuyProperty,
             Some(
-                serde_json::to_string(&BuyPropertyData {
+                to_string(&BuyPropertyData {
                     position: game.players[game.player_turn].position as u32,
                     player: *uuid,
                 })
@@ -176,7 +175,7 @@ pub(crate) async fn buy_property(uuid: Uuid, game: &mut Game) {
                     &game.players,
                     Action::BuyProperty,
                     Some(
-                        serde_json::to_string(&BuyPropertyData {
+                        to_string(&BuyPropertyData {
                             player: uuid,
                             position: game.players[game.player_turn].position as u32,
                         })
@@ -200,7 +199,7 @@ pub(crate) async fn buy_property(uuid: Uuid, game: &mut Game) {
                     &game.players,
                     Action::BuyProperty,
                     Some(
-                        serde_json::to_string(&BuyPropertyData {
+                        to_string(&BuyPropertyData {
                             player: uuid,
                             position: game.players[game.player_turn].position as u32,
                         })

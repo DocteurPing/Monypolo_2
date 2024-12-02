@@ -22,31 +22,15 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &mut GamesState
     let action: PlayerAction = serde_json::from_str(message).unwrap();
     match action.action_type {
         Action::GameStart => {
-            let data = action.data.unwrap();
-            let players_id: Vec<&str> = data.split(',').collect();
-            println!("Game started with {} players", players_id.len());
-            println!("Players ID: {:?}", players_id);
-            // Add a player for number of player stored in data
-            for id in players_id {
-                println!("Player {} joined the game", id.parse::<Uuid>().unwrap());
-                state.players.insert(
-                    id.parse::<Uuid>().unwrap(),
-                    Player {
-                        money: 1500,
-                        position: 0,
-                        is_in_jail: false,
-                    },
-                );
-            }
+            start_game(state, action);
         }
         Action::PlayerTurn => {
             state.player_turn = action.data.unwrap().parse::<Uuid>().unwrap();
             println!("Player {} turn", state.player_turn);
         }
         Action::Identify => {
-            let player_id = action.data.unwrap();
-            state.id = player_id.parse::<Uuid>().unwrap();
-            println!("Player identified with ID: {}", player_id);
+            state.id = action.data.unwrap().parse::<Uuid>().unwrap();
+            println!("Player identified with ID: {}", state.id);
         }
         Action::Move => {
             let roll = action.data.unwrap().parse::<u8>().unwrap();
@@ -102,10 +86,7 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &mut GamesState
             player.position = state
                 .board
                 .iter()
-                .position(|tile| match tile {
-                    shared::board::Tile::Jail => true,
-                    _ => false,
-                })
+                .position(|tile| matches!(tile, shared::board::Tile::Jail))
                 .unwrap();
             player.is_in_jail = true;
             println!("Player {} is in jail", state.player_turn);
@@ -124,5 +105,24 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &mut GamesState
             );
         }
         _ => {}
+    }
+}
+
+fn start_game(state: &mut GamesState, action: PlayerAction) {
+    let data = action.data.unwrap();
+    let players_id: Vec<&str> = data.split(',').collect();
+    println!("Game started with {} players", players_id.len());
+    println!("Players ID: {:?}", players_id);
+    // Add a player for number of player stored in data
+    for id in players_id {
+        println!("Player {} joined the game", id.parse::<Uuid>().unwrap());
+        state.players.insert(
+            id.parse::<Uuid>().unwrap(),
+            Player {
+                money: 1500,
+                position: 0,
+                is_in_jail: false,
+            },
+        );
     }
 }

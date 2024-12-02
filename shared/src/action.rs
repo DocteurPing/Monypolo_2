@@ -44,3 +44,9 @@ pub struct PlayerGoTileData {
     pub player: Uuid,
     pub amount: u32,
 }
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct DiceRollData {
+    pub dice1: u8,
+    pub dice2: u8,
+}

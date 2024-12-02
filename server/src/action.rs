@@ -1,7 +1,8 @@
 use crate::communication::send_to_all_players;
 use crate::game_state::{Game, Player};
+use serde_json::to_string;
 use shared::action::Action::PayRent;
-use shared::action::{Action, BuyPropertyData, PayRentData, PlayerGoTileData};
+use shared::action::{Action, BuyPropertyData, DiceRollData, PayRentData, PlayerGoTileData};
 use shared::board::Tile::*;
 use uuid::Uuid;
 
@@ -12,7 +13,7 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: uuid::Uuid) {
     let roll2 = rand::random::<u8>() % 6 + 1;
     let roll = roll1 + roll2;
     if game.players[game.player_turn].is_in_jail {
-        print!("Player {} is in jail", uuid);
+        println!("Player {} is in jail", uuid);
         if roll1 == roll2 {
             game.players[game.player_turn].is_in_jail = false;
             game.players[game.player_turn].jail_turns = 0;
@@ -30,9 +31,9 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: uuid::Uuid) {
                 println!("Player {} is out of jail", uuid);
             } else {
                 println!("Player {} is still in jail", uuid);
-                game.advance_turn().await;
-                return;
             }
+            game.advance_turn().await;
+            return;
         }
     }
     game.players[game.player_turn].position =
@@ -45,6 +46,18 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: uuid::Uuid) {
         "Tile: {:?}",
         game.board[game.players[game.player_turn].position]
     );
+    send_to_all_players(
+        &game.players,
+        Action::Roll,
+        Some(
+            to_string(&DiceRollData {
+                dice1: roll1,
+                dice2: roll2,
+            })
+            .unwrap(),
+        ),
+    )
+    .await;
     send_to_all_players(
         &game.players,
         Action::Move,
@@ -66,8 +79,8 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: uuid::Uuid) {
             pay_rent_or_buy(game, &uuid, 25, &owner).await;
             return;
         }
-        shared::board::Tile::Chance { .. } => {}
-        shared::board::Tile::Go { amount } => {
+        Chance { .. } => {}
+        Go { amount } => {
             game.players[game.player_turn].money += amount;
             send_to_all_players(
                 &game.players,
@@ -87,7 +100,7 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: uuid::Uuid) {
             game.players[game.player_turn].position = game
                 .board
                 .iter()
-                .position(|tile| matches!(tile, shared::board::Tile::Jail))
+                .position(|tile| matches!(tile, Jail))
                 .unwrap();
             game.players[game.player_turn].is_in_jail = true;
             game.players[game.player_turn].jail_turns = 3;

@@ -104,6 +104,11 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &mut GamesState
                 state.players.get_mut(&data.player).unwrap().money
             );
         }
+        Action::Roll => {
+            let data = serde_json::from_str::<shared::action::DiceRollData>(&action.data.unwrap())
+                .unwrap();
+            println!("Player rolled {} and {}", data.dice1, data.dice2);
+        }
         _ => {}
     }
 }

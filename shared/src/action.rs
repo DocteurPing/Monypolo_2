@@ -16,6 +16,7 @@ pub enum Action {
     Invalid,
     BuyAll,
     GoToJail,
+    PlayerGoTile,
     FreeFromJail,
 }
 
@@ -36,4 +37,10 @@ pub struct PayRentData {
 pub struct BuyPropertyData {
     pub position: u32,
     pub player: Uuid,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PlayerGoTileData {
+    pub player: Uuid,
+    pub amount: u32,
 }

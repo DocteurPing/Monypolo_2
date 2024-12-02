@@ -3,7 +3,7 @@ use lazy_static::lazy_static;
 
 lazy_static! {
     pub static ref MAP1: Vec<Tile> = vec![
-        Tile::Go,
+        Tile::Go { amount: 200 },
         Tile::Property {
             name: "Mediterranean Avenue".to_string(),
             cost: vec![60],

@@ -1,7 +1,6 @@
 use crate::communication::send_to_all_players;
 use crate::server_state::ServerState;
-use shared::maps::map1::MAP1;
-use shared::maps::map_jail::MAP_JAIL;
+use shared::maps::map_go::MAP_GO;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use uuid::Uuid;
@@ -58,7 +57,7 @@ pub(crate) async fn start_new_game(state: Arc<ServerState>) {
     let game = Game {
         id: game_id,
         players: players.clone(),
-        board: MAP_JAIL.clone(),
+        board: MAP_GO.clone(),
         current_turn: 0,
         player_turn: 0,
     };

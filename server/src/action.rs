@@ -1,8 +1,8 @@
 use crate::communication::send_to_all_players;
 use crate::game_state::{Game, Player};
 use shared::action::Action::PayRent;
-use shared::action::{Action, BuyPropertyData, PayRentData};
-use shared::board::Tile::{Property, Railroad};
+use shared::action::{Action, BuyPropertyData, PayRentData, PlayerGoTileData};
+use shared::board::Tile::*;
 use uuid::Uuid;
 
 pub(crate) async fn roll_dice(game: &mut Game, uuid: uuid::Uuid) {
@@ -62,14 +62,28 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: uuid::Uuid) {
             pay_rent_or_buy(game, &uuid, rent[level.clone() as usize], &owner).await;
             return;
         }
-        shared::board::Tile::Railroad { owner, .. } => {
+        Railroad { owner, .. } => {
             pay_rent_or_buy(game, &uuid, 25, &owner).await;
             return;
         }
         shared::board::Tile::Chance { .. } => {}
-        shared::board::Tile::Go => {}
-        shared::board::Tile::Jail => {}
-        shared::board::Tile::GoToJail => {
+        shared::board::Tile::Go { amount } => {
+            game.players[game.player_turn].money += amount;
+            send_to_all_players(
+                &game.players,
+                Action::PlayerGoTile,
+                Some(
+                    serde_json::to_string(&PlayerGoTileData {
+                        player: game.players[game.player_turn].id,
+                        amount,
+                    })
+                    .unwrap(),
+                ),
+            )
+            .await;
+        }
+        Jail => {}
+        GoToJail => {
             game.players[game.player_turn].position = game
                 .board
                 .iter()
@@ -84,7 +98,7 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: uuid::Uuid) {
             )
             .await;
         }
-        shared::board::Tile::FreeParking => {}
+        FreeParking => {}
         _ => {}
     }
     game.advance_turn().await;
@@ -93,7 +107,7 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: uuid::Uuid) {
 async fn pay_rent_or_buy(game: &mut Game, uuid: &Uuid, rent_price: u32, owner: &Option<Uuid>) {
     if owner.is_some() && owner.unwrap() != *uuid {
         game.players[game.player_turn].money -= rent_price;
-        let mut owner_player: &mut Player = game
+        let owner_player: &mut Player = game
             .players
             .iter_mut()
             .find(|player| player.id == owner.unwrap())
@@ -132,7 +146,7 @@ async fn pay_rent_or_buy(game: &mut Game, uuid: &Uuid, rent_price: u32, owner: &
 }
 
 pub(crate) async fn buy_property(uuid: Uuid, game: &mut Game) {
-    let mut tile = &mut game.board[game.players[game.player_turn].position];
+    let tile = &mut game.board[game.players[game.player_turn].position];
     let player = game.players.iter_mut().find(|p| p.id == uuid).unwrap();
 
     match tile {

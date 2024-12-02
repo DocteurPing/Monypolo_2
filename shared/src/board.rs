@@ -22,7 +22,9 @@ pub enum Tile {
     Chance(String),
     Jail,
     GoToJail,
-    Go,
+    Go {
+        amount: u32,
+    },
     FreeParking,
     Railroad {
         owner: Option<Uuid>,

@@ -110,6 +110,19 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &mut GamesState
             player.is_in_jail = true;
             println!("Player {} is in jail", state.player_turn);
         }
+        Action::PlayerGoTile => {
+            let data =
+                serde_json::from_str::<shared::action::PlayerGoTileData>(&action.data.unwrap())
+                    .unwrap();
+            let player = state.players.get_mut(&data.player).unwrap();
+            player.money += data.amount;
+            println!("Player {} got {} money", data.player, data.amount);
+            println!(
+                "Player {} money: {}",
+                data.player,
+                state.players.get_mut(&data.player).unwrap().money
+            );
+        }
         _ => {}
     }
 }

@@ -1,10 +1,13 @@
+mod board;
 mod communication;
 mod game_state;
+mod helpers;
 mod tools;
 
 use crate::communication::{send_action, send_name};
 use crate::game_state::{handle_message_in_game, GamesState};
-use shared::maps::map_jail::MAP_JAIL;
+use bevy::prelude::*;
+use shared::maps::map1::MAP1;
 use std::collections::HashMap;
 use std::io;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -13,6 +16,13 @@ use tools::ToAction;
 
 #[tokio::main]
 async fn main() {
+    // Initialize Bevy app
+    App::new()
+        .add_plugins(DefaultPlugins) // Add default Bevy plugins
+        .add_systems(Startup, board::setup)
+        .add_systems(Update, helpers::camera::movement)
+        .run();
+
     // Connect to the server
     let stream = TcpStream::connect("127.0.0.1:8080")
         .await
@@ -30,7 +40,7 @@ async fn main() {
         players: HashMap::new(),
         current_turn: 0,
         player_turn: Default::default(),
-        board: MAP_JAIL.clone(),
+        board: MAP1.clone(),
     };
 
     // Spawn a task to handle server messages

@@ -16,6 +16,20 @@ pub struct Player {
     pub(crate) jail_turns: u8,
 }
 
+impl Player {
+    pub(crate) fn default(tx: mpsc::Sender<String>) -> Self {
+        Player {
+            id: Uuid::new_v4(),
+            name: "Player".to_string(),
+            tx,
+            money: 1500,
+            position: 0,
+            is_in_jail: false,
+            jail_turns: 0,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub(crate) struct WaitingRoom {
     pub(crate) players: Vec<Player>,
@@ -41,6 +55,16 @@ impl Game {
         )
         .await;
     }
+
+    pub(crate) fn default() -> Self {
+        Game {
+            id: Uuid::new_v4(),
+            players: vec![],
+            board: MAP_JAIL.clone(),
+            current_turn: 0,
+            player_turn: 0,
+        }
+    }
 }
 
 pub(crate) async fn start_new_game(state: Arc<ServerState>) {
@@ -54,13 +78,8 @@ pub(crate) async fn start_new_game(state: Arc<ServerState>) {
     let players = waiting_room.players.drain(0..2).collect::<Vec<_>>();
     let game_id = Uuid::new_v4();
 
-    let game = Game {
-        id: game_id,
-        players: players.clone(),
-        board: MAP_JAIL.clone(),
-        current_turn: 0,
-        player_turn: 0,
-    };
+    let mut game = Game::default();
+    game.players = players.clone();
 
     active_games.insert(game_id, game);
     println!("Started a new game with ID: {}", game_id);

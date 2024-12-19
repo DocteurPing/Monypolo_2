@@ -1,6 +1,7 @@
-use crate::board::spawn_players;
+use crate::board::{generate_positions, spawn_players, TILE_HEIGHT, TILE_WIDTH};
 use async_channel::Sender;
-use bevy::prelude::{AssetServer, Commands, Res, Resource};
+use bevy::prelude::{AssetServer, Commands, Entity, Query, Res, Resource, Transform, Vec3};
+use bevy::utils::default;
 use shared::action::{Action, PlayerAction};
 use shared::board::Tile::Property;
 use std::collections::HashMap;
@@ -11,6 +12,7 @@ pub(crate) struct Player {
     pub(crate) money: u32,
     pub(crate) position: usize,
     pub(crate) is_in_jail: bool,
+    pub(crate) entity: Entity
 }
 
 #[derive(Resource, Debug)]
@@ -28,6 +30,7 @@ pub(crate) fn handle_message_in_game(
     sender: Sender<PlayerAction>,
     commands: &mut Commands,
     asset_server: &Res<AssetServer>,
+    mut transforms: Query<&mut Transform>,
 ) {
     let action: PlayerAction = serde_json::from_str(message).unwrap();
     match action.action_type {
@@ -51,6 +54,18 @@ pub(crate) fn handle_message_in_game(
                 state.players.get(&state.player_turn).unwrap().position,
                 state.board[state.players.get(&state.player_turn).unwrap().position]
             );
+            // Get player and move it
+            let position  = generate_positions();
+            println!("Position x: {:?}", position[roll as usize].0);
+            println!("Position y: {:?}", position[roll as usize].1);
+            *transforms.get_mut(state.players.get(&state.player_turn).unwrap().entity).unwrap() = Transform {
+                translation: Vec3::new(
+                (position[roll as usize].0 - position[roll as usize].1) * (TILE_WIDTH / 2.0),
+                (position[roll as usize].0 - position[roll as usize].1) * (TILE_HEIGHT / 2.0),
+                    32f32
+                ),
+                ..default()
+            }
         }
         Action::PayRent => {
             let data: shared::action::PayRentData =
@@ -133,18 +148,11 @@ fn start_game(
     let players_id: Vec<&str> = data.split(',').collect();
     println!("Game started with {} players", players_id.len());
     println!("Players ID: {:?}", players_id);
-    let nbr_players = players_id.len();
+
     // Add a player for number of player stored in data
-    for id in players_id {
+    for id in players_id.clone() {
         println!("Player {} joined the game", id.parse::<Uuid>().unwrap());
-        state.players.insert(
-            id.parse::<Uuid>().unwrap(),
-            Player {
-                money: 1500,
-                position: 0,
-                is_in_jail: false,
-            },
-        );
+
     }
-    spawn_players(commands, asset_server, nbr_players);
+    spawn_players(commands, asset_server, players_id, state);
 }

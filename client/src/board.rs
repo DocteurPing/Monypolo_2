@@ -1,14 +1,17 @@
 use crate::communication::MessageSender;
-use crate::game_state::GamesState;
+use crate::game_state::{GamesState, Player};
 use bevy::asset::Handle;
 use bevy::image::Image;
 use bevy::input::ButtonInput;
 use bevy::prelude::{AssetServer, Camera2d, Commands, KeyCode, Res, ResMut, Sprite, Transform};
 use bevy::tasks::AsyncComputeTaskPool;
 use shared::action::{Action, PlayerAction};
+use shared::board::Tile;
+use shared::maps::map1::MAP1;
+use uuid::Uuid;
 
-const TILE_WIDTH: f32 = 110.0; // Width of an isometric tile
-const TILE_HEIGHT: f32 = 63.0; // Height of an isometric tile
+pub(crate) const TILE_WIDTH: f32 = 110.0; // Width of an isometric tile
+pub(crate) const TILE_HEIGHT: f32 = 63.0; // Height of an isometric tile
 const GRID_SIZE: usize = 11; // Number of tiles along one edge (must be odd)
 
 const SPRITES_PATH: [&'static str; 5] = [
@@ -19,12 +22,43 @@ const SPRITES_PATH: [&'static str; 5] = [
     "sprites/alienYellow_badge2.png",
 ];
 
+fn get_texture(asset_server: &Res<AssetServer>, i: usize) -> Handle<Image> {
+    match MAP1[i] {
+        Tile::Property { .. } => {
+            asset_server.load("textures/voxelTile_55.png")
+        }
+        Tile::Chance(_) => {
+            asset_server.load("textures/platformerTile_36.png")
+        }
+        Tile::Jail => {
+            asset_server.load("textures/platformerTile_33.png")
+        }
+        Tile::GoToJail => {
+            asset_server.load("textures/platformerTile_46.png")
+        }
+        Tile::Go { .. } => {
+            asset_server.load("textures/abstractTile_12.png")
+        }
+        Tile::FreeParking => {
+            asset_server.load("textures/abstractTile_08.png")
+        }
+        Tile::Railroad { .. } => {
+            asset_server.load("textures/platformerTile_04.png")
+        }
+        Tile::Utility => {
+            asset_server.load("textures/abstractTile_29.png")
+        }
+        Tile::Tax => {
+            asset_server.load("textures/platformerTile_42.png")
+        }
+        Tile::LuxuryTax => {
+            asset_server.load("textures/platformerTile_44.png")
+        }
+    }
+}
+
 pub(crate) fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2d);
-
-    // Load the texture for tiles
-    let grass_texture = asset_server.load("textures/voxelTile_55.png");
-    let test = asset_server.load("textures/platformerTile_36.png");
 
     for (i, (col, row)) in generate_positions().iter().enumerate() {
         let x = (col - row) * (TILE_WIDTH / 2.0);
@@ -32,8 +66,7 @@ pub(crate) fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         //let texture = if i == 33 { grass_texture.clone() } else { test.clone() };
         spawn_tile(
             &mut commands,
-            grass_texture.clone(),
-            test.clone(),
+            get_texture(&asset_server, i),
             i as i32,
             *col,
             *row,
@@ -43,7 +76,7 @@ pub(crate) fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     }
 }
 
-fn generate_positions() -> Vec<(f32, f32)> {
+pub(crate) fn generate_positions() -> Vec<(f32, f32)> {
     let mut positions = Vec::new();
     for i in 0..GRID_SIZE - 1 {
         positions.push(((GRID_SIZE - 1 - i) as f32, (GRID_SIZE - 1) as f32));
@@ -56,8 +89,7 @@ fn generate_positions() -> Vec<(f32, f32)> {
 
 fn spawn_tile(
     commands: &mut Commands,
-    grass_texture: Handle<Image>,
-    test: Handle<Image>,
+    texture: Handle<Image>,
     pos: i32,
     col: f32,
     row: f32,
@@ -66,11 +98,7 @@ fn spawn_tile(
 ) {
     commands.spawn((
         Sprite {
-            image: if pos == 33 {
-                grass_texture.clone()
-            } else {
-                test.clone()
-            },
+            image: texture,
             ..Default::default()
         },
         Transform::from_xyz(
@@ -85,23 +113,33 @@ fn spawn_tile(
 pub(crate) fn spawn_players(
     commands: &mut Commands,
     asset_server: &AssetServer,
-    nbr_player: usize,
+    player_ids: Vec<&str>,
+    state: &mut GamesState,
 ) {
     let pos = generate_positions();
-    for i in 0..nbr_player {
+    for (i, id) in player_ids.iter().enumerate() {
         println!("Spawning player {}", i);
         let player_texture = asset_server.load(SPRITES_PATH[i]);
-        commands.spawn((
+        let player_entity = commands.spawn((
             Sprite {
                 image: player_texture,
                 ..Default::default()
             },
             Transform::from_xyz(
-                pos[0].0 + i as f32 * (TILE_WIDTH / nbr_player as f32),
-                pos[0].1 + i as f32 * (TILE_WIDTH / nbr_player as f32),
+                pos[0].0 + i as f32 * (TILE_WIDTH / player_ids.len() as f32),
+                pos[0].1 + i as f32 * (TILE_WIDTH / player_ids.iter().len() as f32),
                 32f32,
             ),
-        ));
+        )).id();
+        state.players.insert(
+            id.parse::<Uuid>().unwrap(),
+            Player {
+                money: 1500,
+                position: 0,
+                is_in_jail: false,
+                entity: player_entity,
+            },
+        );
     }
 }
 

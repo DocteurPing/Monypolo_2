@@ -1,6 +1,6 @@
 use crate::communication::send_to_all_players;
 use crate::server_state::ServerState;
-use shared::maps::map_jail::MAP_JAIL;
+use shared::maps::map1::MAP1;
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use uuid::Uuid;
@@ -60,7 +60,7 @@ impl Game {
         Game {
             id: Uuid::new_v4(),
             players: vec![],
-            board: MAP_JAIL.clone(),
+            board: MAP1.clone(),
             current_turn: 0,
             player_turn: 0,
         }

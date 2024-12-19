@@ -1,6 +1,6 @@
 use crate::game_state::{handle_message_in_game, GamesState};
 use async_channel::{unbounded, Receiver, Sender};
-use bevy::prelude::{AssetServer, Commands, Deref, DerefMut, Res, ResMut, Resource};
+use bevy::prelude::{AssetServer, Commands, Deref, DerefMut, Query, Res, ResMut, Resource, Transform};
 use shared::action::{Action, PlayerAction};
 use std::io;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -146,6 +146,7 @@ pub(crate) fn receive_message(
     mut game_state: ResMut<GamesState>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
+    mut transforms: Query<&mut Transform>,
 ) {
     if let Ok(message) = receiver.0.try_recv() {
         println!("Processing message: {}", message.trim());
@@ -157,6 +158,7 @@ pub(crate) fn receive_message(
             sender.0.clone(),
             &mut commands,
             &asset_server,
+            transforms
         );
     }
 }

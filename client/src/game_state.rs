@@ -1,4 +1,4 @@
-use crate::board::{generate_positions, spawn_players, TILE_HEIGHT, TILE_WIDTH};
+use crate::board::{convert_pos_to_coords, generate_positions, spawn_players};
 use bevy::prelude::{AssetServer, Commands, Entity, Query, Res, Resource, Transform, Vec3};
 use bevy::utils::default;
 use shared::action::{Action, PlayerAction};
@@ -44,28 +44,11 @@ pub(crate) fn handle_message_in_game(
             println!("Player identified with ID: {}", state.id);
         }
         Action::Move => {
-            let roll = action.data.unwrap().parse::<u8>().unwrap();
-            println!("uuid: {:?}", state.player_turn);
-            state.players.get_mut(&state.player_turn).unwrap().position = roll as usize;
-            println!(
-                "Player moved to position {} tile {:?}",
-                state.players.get(&state.player_turn).unwrap().position,
-                state.board[state.players.get(&state.player_turn).unwrap().position]
+            move_player(
+                state,
+                &mut transforms,
+                action.data.unwrap().parse::<usize>().unwrap(),
             );
-            // Get player and move it
-            let position = generate_positions();
-            println!("Position x: {:?}", position[roll as usize].0);
-            println!("Position y: {:?}", position[roll as usize].1);
-            *transforms
-                .get_mut(state.players.get(&state.player_turn).unwrap().entity)
-                .unwrap() = Transform {
-                translation: Vec3::new(
-                    (position[roll as usize].0 - position[roll as usize].1) * (TILE_WIDTH / 2.0),
-                    (position[roll as usize].0 - position[roll as usize].1) * (TILE_HEIGHT / 2.0),
-                    32f32,
-                ),
-                ..default()
-            }
         }
         Action::PayRent => {
             let data: shared::action::PayRentData =
@@ -107,13 +90,17 @@ pub(crate) fn handle_message_in_game(
             }
         }
         Action::GoToJail => {
-            let player = state.players.get_mut(&state.player_turn).unwrap();
-            player.position = state
+            let jail_pos = state
                 .board
                 .iter()
                 .position(|tile| matches!(tile, shared::board::Tile::Jail))
                 .unwrap();
-            player.is_in_jail = true;
+            move_player(state, &mut transforms, jail_pos);
+            state
+                .players
+                .get_mut(&state.player_turn)
+                .unwrap()
+                .is_in_jail = true;
             println!("Player {} is in jail", state.player_turn);
         }
         Action::PlayerGoTile => {
@@ -135,6 +122,27 @@ pub(crate) fn handle_message_in_game(
             println!("Player rolled {} and {}", data.dice1, data.dice2);
         }
         _ => {}
+    }
+}
+
+fn move_player(state: &mut GamesState, transforms: &mut Query<&mut Transform>, roll: usize) {
+    println!("uuid: {:?}", state.player_turn);
+    state.players.get_mut(&state.player_turn).unwrap().position = roll;
+    println!(
+        "Player moved to position {} tile {:?}",
+        state.players.get(&state.player_turn).unwrap().position,
+        state.board[state.players.get(&state.player_turn).unwrap().position]
+    );
+    // Get player and move it
+    let position = generate_positions();
+    println!("Position x: {:?}", position[roll].0);
+    println!("Position y: {:?}", position[roll].1);
+    let pos = convert_pos_to_coords(roll);
+    *transforms
+        .get_mut(state.players.get(&state.player_turn).unwrap().entity)
+        .unwrap() = Transform {
+        translation: Vec3::new(pos.0, pos.1, 32f32),
+        ..default()
     }
 }
 

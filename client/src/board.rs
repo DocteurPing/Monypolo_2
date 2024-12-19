@@ -3,7 +3,7 @@ use crate::game_state::{GamesState, Player};
 use bevy::asset::Handle;
 use bevy::image::Image;
 use bevy::input::ButtonInput;
-use bevy::prelude::{AssetServer, Camera2d, Commands, KeyCode, Res, Sprite, Transform};
+use bevy::prelude::{AssetServer, Camera2d, Commands, KeyCode, Name, Res, Sprite, Transform};
 use bevy::tasks::AsyncComputeTaskPool;
 use shared::action::{Action, PlayerAction};
 use shared::board::Tile;
@@ -49,6 +49,7 @@ pub(crate) fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 ..Default::default()
             },
             Transform::from_xyz(x, y, row + col),
+            Name::new(format!("Tile_{}", i)),
         ));
     }
 }
@@ -76,27 +77,31 @@ pub(crate) fn generate_positions() -> Vec<(f32, f32)> {
     positions
 }
 
+pub(crate) fn convert_pos_to_coords(pos: usize) -> (f32, f32) {
+    let positions = generate_positions();
+    let x = (positions[pos].0 - positions[pos].1) * (TILE_WIDTH / 2.0);
+    let y = -(positions[pos].0 + positions[pos].1) * (TILE_HEIGHT / 2.0) + TILE_HEIGHT / 2.0;
+    (x, y)
+}
+
 pub(crate) fn spawn_players(
     commands: &mut Commands,
     asset_server: &AssetServer,
     player_ids: Vec<&str>,
     state: &mut GamesState,
 ) {
-    let pos = generate_positions();
     for (i, id) in player_ids.iter().enumerate() {
         println!("Spawning player {}", i);
         let player_texture = asset_server.load(SPRITES_PATH[i]);
+        let pos = convert_pos_to_coords(0);
         let player_entity = commands
             .spawn((
                 Sprite {
                     image: player_texture,
                     ..Default::default()
                 },
-                Transform::from_xyz(
-                    pos[0].0 + i as f32 * (TILE_WIDTH / player_ids.len() as f32),
-                    pos[0].1 + i as f32 * (TILE_WIDTH / player_ids.iter().len() as f32),
-                    32f32,
-                ),
+                Transform::from_xyz(pos.0, pos.1, 32f32),
+                Name::new(format!("Player_{}", i)),
             ))
             .id();
         state.players.insert(

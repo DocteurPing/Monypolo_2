@@ -75,7 +75,7 @@ pub(crate) async fn start_new_game(state: Arc<ServerState>) {
         return;
     }
 
-    let players = waiting_room.players.drain(0..3).collect::<Vec<_>>();
+    let players = waiting_room.players.drain(0..2).collect::<Vec<_>>();
     let game_id = Uuid::new_v4();
 
     let mut game = Game::default();

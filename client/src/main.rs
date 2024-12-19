@@ -26,7 +26,9 @@ async fn main() {
         .insert_resource(MessageReceiver(rx_server))
         .insert_resource(MessageSender(tx_client))
         .add_systems(Startup, board::setup)
+        //.add_systems(Startup, communication::setup_network)
         .add_systems(Update, communication::receive_message)
+        .add_systems(Update, board::roll_dice)
         .add_systems(Update, helpers::camera::movement)
         .run();
 }

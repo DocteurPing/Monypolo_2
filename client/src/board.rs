@@ -1,10 +1,23 @@
+use crate::communication::MessageSender;
+use crate::game_state::GamesState;
 use bevy::asset::Handle;
 use bevy::image::Image;
-use bevy::prelude::{AssetServer, Camera2d, Commands, Res, Sprite, Transform};
+use bevy::input::ButtonInput;
+use bevy::prelude::{AssetServer, Camera2d, Commands, KeyCode, Res, ResMut, Sprite, Transform};
+use bevy::tasks::AsyncComputeTaskPool;
+use shared::action::{Action, PlayerAction};
 
 const TILE_WIDTH: f32 = 110.0; // Width of an isometric tile
 const TILE_HEIGHT: f32 = 63.0; // Height of an isometric tile
 const GRID_SIZE: usize = 11; // Number of tiles along one edge (must be odd)
+
+const SPRITES_PATH: [&'static str; 5] = [
+    "sprites/alienBeige_badge2.png",
+    "sprites/alienBlue_badge2.png",
+    "sprites/alienGreen_badge2.png",
+    "sprites/alienPink_badge2.png",
+    "sprites/alienYellow_badge2.png",
+];
 
 pub(crate) fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2d);
@@ -71,22 +84,38 @@ fn spawn_tile(
 
 pub(crate) fn spawn_players(
     commands: &mut Commands,
-    asset_server: &Res<AssetServer>,
+    asset_server: &AssetServer,
     nbr_player: usize,
 ) {
+    let pos = generate_positions();
     for i in 0..nbr_player {
         println!("Spawning player {}", i);
-        let player_texture = asset_server.load("sprites/alienGreen_stand.png");
+        let player_texture = asset_server.load(SPRITES_PATH[i]);
         commands.spawn((
             Sprite {
                 image: player_texture,
                 ..Default::default()
             },
             Transform::from_xyz(
-                i as f32 * (TILE_WIDTH / 2.0),
-                i as f32 * (TILE_WIDTH / 2.0),
-                i as f32 * (TILE_WIDTH / 2.0) + 32f32,
+                pos[0].0 + i as f32 * (TILE_WIDTH / nbr_player as f32),
+                pos[0].1 + i as f32 * (TILE_WIDTH / nbr_player as f32),
+                32f32,
             ),
         ));
+    }
+}
+
+pub(crate) fn roll_dice(keyboard_input: Res<ButtonInput<KeyCode>>, mut sender: ResMut<MessageSender>, games_state: Res<GamesState>) {
+    if keyboard_input.just_pressed(KeyCode::Space) && games_state.player_turn == games_state.id {
+        println!("Rolling dice");
+        // Spawn a new async task to send the action
+        let sender = sender.clone();
+        let task_pool = AsyncComputeTaskPool::get();
+        task_pool.spawn(async move {
+            sender.0.send(PlayerAction {
+                action_type: Action::Roll,
+                data: None,
+            }).await.unwrap();
+        }).detach();
     }
 }

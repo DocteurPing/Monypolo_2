@@ -119,7 +119,7 @@ async fn add_to_waiting_room(state: &Arc<ServerState>, player: Player) {
         waiting_room.players.len()
     );
 
-    if waiting_room.players.len() == 3 {
+    if waiting_room.players.len() == 2 {
         // Start a new game when there are 4 players
         tokio::spawn(start_new_game(Arc::clone(state)));
     }

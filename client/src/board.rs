@@ -17,13 +17,22 @@ pub(crate) fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         let x = (col - row) * (TILE_WIDTH / 2.0);
         let y = -(col + row) * (TILE_HEIGHT / 2.0);
         //let texture = if i == 33 { grass_texture.clone() } else { test.clone() };
-        spawn_tile(&mut commands, grass_texture.clone(), test.clone(), i as i32, *col, *row, x, y);
+        spawn_tile(
+            &mut commands,
+            grass_texture.clone(),
+            test.clone(),
+            i as i32,
+            *col,
+            *row,
+            x,
+            y,
+        );
     }
 }
 
 fn generate_positions() -> Vec<(f32, f32)> {
     let mut positions = Vec::new();
-    for i in 0..GRID_SIZE-1 {
+    for i in 0..GRID_SIZE - 1 {
         positions.push(((GRID_SIZE - 1 - i) as f32, (GRID_SIZE - 1) as f32));
         positions.push((0f32, (GRID_SIZE - 1 - i) as f32));
         positions.push((i as f32, 0f32));
@@ -32,7 +41,16 @@ fn generate_positions() -> Vec<(f32, f32)> {
     positions
 }
 
-fn spawn_tile(commands: &mut Commands, grass_texture: Handle<Image>, test: Handle<Image>, mut pos: i32, col: f32, row: f32, x: f32, y: f32) {
+fn spawn_tile(
+    commands: &mut Commands,
+    grass_texture: Handle<Image>,
+    test: Handle<Image>,
+    pos: i32,
+    col: f32,
+    row: f32,
+    x: f32,
+    y: f32,
+) {
     commands.spawn((
         Sprite {
             image: if pos == 33 {
@@ -46,7 +64,29 @@ fn spawn_tile(commands: &mut Commands, grass_texture: Handle<Image>, test: Handl
             // Distribute shapes from -X_EXTENT/2 to +X_EXTENT/2.
             x,
             y,
-            row as f32 + col as f32,
+            row + col,
         ),
     ));
+}
+
+pub(crate) fn spawn_players(
+    commands: &mut Commands,
+    asset_server: &Res<AssetServer>,
+    nbr_player: usize,
+) {
+    for i in 0..nbr_player {
+        println!("Spawning player {}", i);
+        let player_texture = asset_server.load("sprites/alienGreen_stand.png");
+        commands.spawn((
+            Sprite {
+                image: player_texture,
+                ..Default::default()
+            },
+            Transform::from_xyz(
+                i as f32 * (TILE_WIDTH / 2.0),
+                i as f32 * (TILE_WIDTH / 2.0),
+                i as f32 * (TILE_WIDTH / 2.0) + 32f32,
+            ),
+        ));
+    }
 }

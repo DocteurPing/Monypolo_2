@@ -1,3 +1,6 @@
+use crate::board::spawn_players;
+use async_channel::Sender;
+use bevy::prelude::{AssetServer, Commands, Res, Resource};
 use shared::action::{Action, PlayerAction};
 use shared::board::Tile::Property;
 use std::collections::HashMap;
@@ -10,6 +13,7 @@ pub(crate) struct Player {
     pub(crate) is_in_jail: bool,
 }
 
+#[derive(Resource, Debug)]
 pub(crate) struct GamesState {
     pub(crate) id: Uuid,
     pub(crate) players: HashMap<Uuid, Player>,
@@ -18,11 +22,17 @@ pub(crate) struct GamesState {
     pub(crate) board: Vec<shared::board::Tile>,
 }
 
-pub(crate) async fn handle_message_in_game(message: &str, state: &mut GamesState) {
+pub(crate) fn handle_message_in_game(
+    message: &str,
+    state: &mut GamesState,
+    sender: Sender<PlayerAction>,
+    commands: &mut Commands,
+    asset_server: &Res<AssetServer>,
+) {
     let action: PlayerAction = serde_json::from_str(message).unwrap();
     match action.action_type {
         Action::GameStart => {
-            start_game(state, action);
+            start_game(state, action, commands, asset_server);
         }
         Action::PlayerTurn => {
             state.player_turn = action.data.unwrap().parse::<Uuid>().unwrap();
@@ -113,11 +123,17 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &mut GamesState
     }
 }
 
-fn start_game(state: &mut GamesState, action: PlayerAction) {
+fn start_game(
+    state: &mut GamesState,
+    action: PlayerAction,
+    commands: &mut Commands,
+    asset_server: &Res<AssetServer>,
+) {
     let data = action.data.unwrap();
     let players_id: Vec<&str> = data.split(',').collect();
     println!("Game started with {} players", players_id.len());
     println!("Players ID: {:?}", players_id);
+    let nbr_players = players_id.len();
     // Add a player for number of player stored in data
     for id in players_id {
         println!("Player {} joined the game", id.parse::<Uuid>().unwrap());
@@ -130,4 +146,5 @@ fn start_game(state: &mut GamesState, action: PlayerAction) {
             },
         );
     }
+    spawn_players(commands, asset_server, nbr_players);
 }

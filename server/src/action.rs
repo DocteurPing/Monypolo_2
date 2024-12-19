@@ -66,10 +66,7 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: Uuid) {
     .await;
     match game.board[game.players[game.player_turn].position].clone() {
         Property {
-            rent,
-            level,
-            owner,
-            ..
+            rent, level, owner, ..
         } => {
             pay_rent_or_buy(game, &uuid, rent[level.clone() as usize], &owner).await;
             return;

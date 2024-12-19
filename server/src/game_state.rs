@@ -17,10 +17,10 @@ pub struct Player {
 }
 
 impl Player {
-    pub(crate) fn default(tx: mpsc::Sender<String>) -> Self {
+    pub(crate) fn default(tx: mpsc::Sender<String>, name: String) -> Self {
         Player {
             id: Uuid::new_v4(),
-            name: "Player".to_string(),
+            name,
             tx,
             money: 1500,
             position: 0,
@@ -75,7 +75,7 @@ pub(crate) async fn start_new_game(state: Arc<ServerState>) {
         return;
     }
 
-    let players = waiting_room.players.drain(0..2).collect::<Vec<_>>();
+    let players = waiting_room.players.drain(0..3).collect::<Vec<_>>();
     let game_id = Uuid::new_v4();
 
     let mut game = Game::default();

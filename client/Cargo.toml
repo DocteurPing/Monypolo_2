@@ -10,3 +10,4 @@ serde_json = "1.0.133"
 shared = { path = "../shared" }
 uuid = { version = "1.11.0", features = ["v4"] }
 bevy = "0.15.0"
+async-channel = "2.3.1"

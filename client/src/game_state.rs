@@ -1,5 +1,4 @@
 use crate::board::{generate_positions, spawn_players, TILE_HEIGHT, TILE_WIDTH};
-use async_channel::Sender;
 use bevy::prelude::{AssetServer, Commands, Entity, Query, Res, Resource, Transform, Vec3};
 use bevy::utils::default;
 use shared::action::{Action, PlayerAction};
@@ -12,7 +11,7 @@ pub(crate) struct Player {
     pub(crate) money: u32,
     pub(crate) position: usize,
     pub(crate) is_in_jail: bool,
-    pub(crate) entity: Entity
+    pub(crate) entity: Entity,
 }
 
 #[derive(Resource, Debug)]
@@ -27,7 +26,6 @@ pub(crate) struct GamesState {
 pub(crate) fn handle_message_in_game(
     message: &str,
     state: &mut GamesState,
-    sender: Sender<PlayerAction>,
     commands: &mut Commands,
     asset_server: &Res<AssetServer>,
     mut transforms: Query<&mut Transform>,
@@ -55,14 +53,16 @@ pub(crate) fn handle_message_in_game(
                 state.board[state.players.get(&state.player_turn).unwrap().position]
             );
             // Get player and move it
-            let position  = generate_positions();
+            let position = generate_positions();
             println!("Position x: {:?}", position[roll as usize].0);
             println!("Position y: {:?}", position[roll as usize].1);
-            *transforms.get_mut(state.players.get(&state.player_turn).unwrap().entity).unwrap() = Transform {
+            *transforms
+                .get_mut(state.players.get(&state.player_turn).unwrap().entity)
+                .unwrap() = Transform {
                 translation: Vec3::new(
-                (position[roll as usize].0 - position[roll as usize].1) * (TILE_WIDTH / 2.0),
-                (position[roll as usize].0 - position[roll as usize].1) * (TILE_HEIGHT / 2.0),
-                    32f32
+                    (position[roll as usize].0 - position[roll as usize].1) * (TILE_WIDTH / 2.0),
+                    (position[roll as usize].0 - position[roll as usize].1) * (TILE_HEIGHT / 2.0),
+                    32f32,
                 ),
                 ..default()
             }
@@ -152,7 +152,6 @@ fn start_game(
     // Add a player for number of player stored in data
     for id in players_id.clone() {
         println!("Player {} joined the game", id.parse::<Uuid>().unwrap());
-
     }
     spawn_players(commands, asset_server, players_id, state);
 }

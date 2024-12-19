@@ -71,14 +71,14 @@ pub(crate) async fn start_new_game(state: Arc<ServerState>) {
     let mut waiting_room = state.waiting_room.lock().await;
     let mut active_games = state.active_games.lock().await;
 
-    if waiting_room.players.len() < 1 {
+    if waiting_room.players.len() < 2 {
         return;
     }
 
     let players = waiting_room.players.drain(0..2).collect::<Vec<_>>();
-    let game_id = Uuid::new_v4();
 
     let mut game = Game::default();
+    let game_id = game.id;
     game.players = players.clone();
 
     active_games.insert(game_id, game);

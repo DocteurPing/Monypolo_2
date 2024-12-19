@@ -1,6 +1,8 @@
 use crate::game_state::{handle_message_in_game, GamesState};
 use async_channel::{unbounded, Receiver, Sender};
-use bevy::prelude::{AssetServer, Commands, Deref, DerefMut, Query, Res, ResMut, Resource, Transform};
+use bevy::prelude::{
+    AssetServer, Commands, Deref, DerefMut, Query, Res, ResMut, Resource, Transform,
+};
 use shared::action::{Action, PlayerAction};
 use std::io;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
@@ -50,7 +52,7 @@ pub(crate) async fn connect_to_server() -> (BufReader<OwnedReadHalf>, OwnedWrite
 
     // Split the stream into reader and writer
     let (reader, mut writer) = stream.into_split();
-    let mut reader = BufReader::new(reader);
+    let reader = BufReader::new(reader);
     send_name(&mut writer).await;
 
     (reader, writer)
@@ -104,49 +106,12 @@ async fn handle_server_communication(
     }
 }
 
-// async fn read_from_server(
-//     tx_server: Sender<String>,
-//     mut reader: BufReader<OwnedReadHalf>,
-// ) -> Result<(), Box<dyn std::error::Error>> {
-//     loop {
-//         let mut buf = String::new();
-//         println!("Waiting for message from server");
-//         match reader.read_line(&mut buf).await {
-//             Ok(0) => {
-//                 eprintln!("Server closed connection");
-//                 return Err("Server closed connection".into());
-//             } // Server closed connection
-//             Ok(_) => {
-//                 #[cfg(debug_assertions)]
-//                 println!("Server: {}", buf.trim());
-//                 tx_server.send(buf.clone()).await.unwrap();
-//                 //handle_message_in_game(&buf, &mut state).await;
-//                 if buf.trim() == "Goodbye!" {
-//                     return Ok(());
-//                 }
-//             }
-//             Err(e) => {
-//                 eprintln!("Error reading from server: {:?}", e);
-//                 return Err(e.into());
-//             }
-//         }
-//     }
-// }
-//
-// async fn write_to_server(rx_client: Receiver<PlayerAction>, mut writer: OwnedWriteHalf) {
-//     while let Ok(action) = rx_client.try_recv() {
-//         println!("Sending message: {:?}", action.action_type);
-//         send_action(action.action_type, action.data, &mut writer).await;
-//     }
-//     println!("No message to send");
-// }
 pub(crate) fn receive_message(
     receiver: ResMut<MessageReceiver>,
-    sender: ResMut<MessageSender>,
     mut game_state: ResMut<GamesState>,
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    mut transforms: Query<&mut Transform>,
+    transforms: Query<&mut Transform>,
 ) {
     if let Ok(message) = receiver.0.try_recv() {
         println!("Processing message: {}", message.trim());
@@ -155,10 +120,9 @@ pub(crate) fn receive_message(
         handle_message_in_game(
             &message,
             &mut game_state,
-            sender.0.clone(),
             &mut commands,
             &asset_server,
-            transforms
+            transforms,
         );
     }
 }

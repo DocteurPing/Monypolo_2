@@ -38,7 +38,10 @@ fn get_texture(asset_server: &Res<AssetServer>, i: usize) -> Handle<Image> {
 }
 
 pub(crate) fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
-    commands.spawn(Camera2d);
+    commands.spawn((
+        Camera2d,
+        Transform::from_xyz(0.0, -TILE_HEIGHT * ((GRID_SIZE as f32 / 3.0).round() + 1.0), 100.0),
+    ));
 
     for (i, (col, row)) in generate_positions().iter().enumerate() {
         let x = (col - row) * (TILE_WIDTH / 2.0);

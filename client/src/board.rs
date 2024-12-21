@@ -3,10 +3,7 @@ use crate::game_state::{GamesState, Player};
 use bevy::asset::Handle;
 use bevy::image::Image;
 use bevy::input::ButtonInput;
-use bevy::prelude::{
-    AssetServer, BuildChildren, Camera2d, ChildBuild, Commands, DespawnRecursiveExt, KeyCode, Name,
-    Res, ResMut, Sprite, Transform,
-};
+use bevy::prelude::*;
 use bevy::tasks::AsyncComputeTaskPool;
 use shared::action::{Action, PlayerAction, PlayerIdentifyData};
 use shared::board::Tile;
@@ -69,6 +66,21 @@ pub(crate) fn setup(
                 .id(),
         );
     }
+
+    commands.spawn((
+        Text::new("Score:"),
+        TextFont {
+            font_size: 33.0,
+            ..default()
+        },
+        TextColor(Color::srgb(0.5, 0.5, 1.0)),
+        Node {
+            position_type: PositionType::Absolute,
+            bottom: Val::Px(5.0),
+            left: Val::Px(5.0),
+            ..default()
+        },
+    ));
 }
 
 pub(crate) fn generate_positions() -> Vec<(f32, f32)> {

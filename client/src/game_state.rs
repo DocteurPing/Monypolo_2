@@ -3,7 +3,7 @@ use crate::ui::buttons::spawn_buy_buttons;
 use crate::ui::toast::spawn_toast;
 use bevy::prelude::*;
 use bevy::utils::default;
-use shared::action::{Action, PlayerAction, PlayerIdentifyData};
+use shared::action::{Action, BuyPropertyData, PlayerAction, PlayerIdentifyData};
 use shared::board::Tile::Property;
 use shared::maps::map1::MAP1;
 use std::collections::HashMap;
@@ -152,7 +152,7 @@ fn buy_property(
     action: PlayerAction,
     asset_server: &Res<AssetServer>,
 ) {
-    let buy_property_data: shared::action::BuyPropertyData =
+    let buy_property_data: BuyPropertyData =
         serde_json::from_str(action.data.unwrap().as_str()).unwrap();
     let player = state.players.get_mut(&buy_property_data.player).unwrap();
     // Get the property tile

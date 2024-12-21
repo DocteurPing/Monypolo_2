@@ -168,7 +168,10 @@ pub(crate) async fn buy_property(uuid: Uuid, game: &mut Game) {
             if player.money >= cost[0] {
                 player.money -= cost[0];
                 *owner = Some(uuid);
-                println!("Player {} bought property", uuid);
+                println!(
+                    "Player {} bought property money of the player {}",
+                    uuid, player.money
+                );
                 send_to_all_players(
                     &game.players,
                     Action::BuyProperty,
@@ -192,7 +195,10 @@ pub(crate) async fn buy_property(uuid: Uuid, game: &mut Game) {
             if player.money >= *cost {
                 player.money -= *cost;
                 *owner = Some(uuid);
-                println!("Player {} bought property", uuid);
+                println!(
+                    "Player {} bought property money of the player {}",
+                    uuid, player.money
+                );
                 send_to_all_players(
                     &game.players,
                     Action::BuyProperty,

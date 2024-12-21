@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use bevy::utils::default;
 use shared::action::{Action, PlayerAction};
 use shared::board::Tile::Property;
+use shared::maps::map1::MAP1;
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -24,6 +25,20 @@ pub(crate) struct GamesState {
     pub(crate) board: Vec<shared::board::Tile>,
     pub(crate) can_roll: bool,
     pub(crate) buy_button_node_id: Option<Entity>,
+}
+
+impl Default for GamesState {
+    fn default() -> Self {
+        GamesState {
+            id: Uuid::new_v4(),
+            players: HashMap::new(),
+            current_turn: 0,
+            player_turn: Uuid::new_v4(),
+            board: MAP1.clone(),
+            can_roll: false,
+            buy_button_node_id: None,
+        }
+    }
 }
 
 pub(crate) fn handle_message_in_game(

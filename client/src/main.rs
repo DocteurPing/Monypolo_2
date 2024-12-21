@@ -11,8 +11,6 @@ use crate::ui::buttons::button_system;
 use bevy::input::common_conditions::input_toggle_active;
 use bevy::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use shared::maps::map1::MAP1;
-use std::collections::HashMap;
 
 #[tokio::main]
 async fn main() {
@@ -20,15 +18,7 @@ async fn main() {
     // Initialize Bevy app
     App::new()
         .add_plugins(DefaultPlugins) // Add default Bevy plugins
-        .insert_resource(GamesState {
-            id: Default::default(),
-            players: HashMap::new(),
-            current_turn: 0,
-            player_turn: Default::default(),
-            board: MAP1.clone(),
-            can_roll: false,
-            buy_button_node_id: None,
-        })
+        .insert_resource(GamesState::default())
         .insert_resource(MessageReceiver(rx_server))
         .insert_resource(MessageSender(tx_client))
         .add_plugins(

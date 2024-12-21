@@ -1,8 +1,9 @@
 use crate::board::{convert_pos_to_coords, generate_positions, spawn_players};
 use crate::ui::buttons::spawn_buy_buttons;
+use crate::ui::toast::spawn_toast;
 use bevy::prelude::*;
 use bevy::utils::default;
-use shared::action::{Action, PlayerAction};
+use shared::action::{Action, PlayerAction, PlayerIdentifyData};
 use shared::board::Tile::Property;
 use shared::maps::map1::MAP1;
 use std::collections::HashMap;
@@ -10,6 +11,7 @@ use uuid::Uuid;
 
 #[derive(Debug)]
 pub(crate) struct Player {
+    pub(crate) name: String,
     pub(crate) money: u32,
     pub(crate) position: usize,
     pub(crate) is_in_jail: bool,
@@ -109,6 +111,14 @@ pub(crate) fn handle_message_in_game(
                     buy_property_data.player, buy_property_data.position
                 );
                 println!("Property is now {:?}", state.board[player.position]);
+                spawn_toast(
+                    commands,
+                    format!(
+                        "{} bought the property!",
+                        state.players.get(&state.player_turn).unwrap().name
+                    ),
+                    2.0,
+                );
             }
         }
         Action::GoToJail => {
@@ -143,6 +153,17 @@ pub(crate) fn handle_message_in_game(
                 .unwrap();
             println!("Player rolled {} and {}", data.dice1, data.dice2);
         }
+        Action::SkipBuyProperty => {
+            println!("Player skipped buying property");
+            spawn_toast(
+                commands,
+                format!(
+                    "{} skipped buying the property!",
+                    state.players.get(&state.player_turn).unwrap().name
+                ),
+                2.0,
+            );
+        }
         _ => {}
     }
 }
@@ -176,13 +197,13 @@ fn start_game(
     asset_server: &Res<AssetServer>,
 ) {
     let data = action.data.unwrap();
-    let players_id: Vec<&str> = data.split(',').collect();
-    println!("Game started with {} players", players_id.len());
-    println!("Players ID: {:?}", players_id);
+    let players_data = serde_json::from_str::<Vec<PlayerIdentifyData>>(&data).unwrap();
+    println!("Game started with {} players", players_data.len());
+    println!("Players ID: {:?}", players_data);
 
     // Add a player for number of player stored in data
-    for id in players_id.clone() {
-        println!("Player {} joined the game", id.parse::<Uuid>().unwrap());
+    for data in players_data.clone() {
+        println!("Player {} joined the game", data.id);
     }
-    spawn_players(commands, asset_server, players_id, state);
+    spawn_players(commands, asset_server, players_data, state);
 }

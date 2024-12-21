@@ -1,5 +1,6 @@
 use crate::communication::send_to_all_players;
 use crate::server_state::ServerState;
+use shared::action::PlayerIdentifyData;
 use shared::maps::map1::MAP1;
 use std::sync::Arc;
 use tokio::sync::mpsc;
@@ -86,15 +87,17 @@ pub(crate) async fn start_new_game(state: Arc<ServerState>) {
 
     let current_game = active_games.get_mut(&game_id).unwrap();
     current_game.player_turn = rand::random::<u8>() as usize % (players.len() - 1);
-    let player_ids = players
+    let players_data: Vec<PlayerIdentifyData> = players
         .iter()
-        .map(|p| p.id.to_string())
-        .collect::<Vec<_>>()
-        .join(",");
+        .map(|p| PlayerIdentifyData {
+            id: p.id,
+            name: p.name.clone(),
+        })
+        .collect();
     send_to_all_players(
         &players,
         shared::action::Action::GameStart,
-        Some(player_ids),
+        Some(serde_json::to_string(&players_data).unwrap()),
     )
     .await;
     send_to_all_players(

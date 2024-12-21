@@ -50,3 +50,9 @@ pub struct DiceRollData {
     pub dice1: u8,
     pub dice2: u8,
 }
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PlayerIdentifyData {
+    pub id: Uuid,
+    pub name: String,
+}

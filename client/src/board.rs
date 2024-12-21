@@ -5,10 +5,9 @@ use bevy::image::Image;
 use bevy::input::ButtonInput;
 use bevy::prelude::{AssetServer, Camera2d, Commands, KeyCode, Name, Res, Sprite, Transform};
 use bevy::tasks::AsyncComputeTaskPool;
-use shared::action::{Action, PlayerAction};
+use shared::action::{Action, PlayerAction, PlayerIdentifyData};
 use shared::board::Tile;
 use shared::maps::map1::MAP1;
-use uuid::Uuid;
 
 pub(crate) const TILE_WIDTH: f32 = 110.0; // Width of an isometric tile
 pub(crate) const TILE_HEIGHT: f32 = 63.0; // Height of an isometric tile
@@ -94,10 +93,10 @@ pub(crate) fn convert_pos_to_coords(pos: usize) -> (f32, f32) {
 pub(crate) fn spawn_players(
     commands: &mut Commands,
     asset_server: &AssetServer,
-    player_ids: Vec<&str>,
+    players_data: Vec<PlayerIdentifyData>,
     state: &mut GamesState,
 ) {
-    for (i, id) in player_ids.iter().enumerate() {
+    for (i, data) in players_data.iter().enumerate() {
         println!("Spawning player {}", i);
         let player_texture = asset_server.load(SPRITES_PATH[i]);
         let pos = convert_pos_to_coords(0);
@@ -112,8 +111,9 @@ pub(crate) fn spawn_players(
             ))
             .id();
         state.players.insert(
-            id.parse::<Uuid>().unwrap(),
+            data.id,
             Player {
+                name: data.name.clone(),
                 money: 1500,
                 position: 0,
                 is_in_jail: false,

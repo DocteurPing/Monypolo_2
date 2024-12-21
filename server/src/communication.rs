@@ -40,6 +40,12 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &Arc<ServerStat
                 }
                 Action::SkipBuyProperty => {
                     println!("Player {} skipped buying property", uuid);
+                    send_to_all_players(
+                        &game.players,
+                        Action::SkipBuyProperty,
+                        Some(game.players[game.player_turn].id.to_string()),
+                    )
+                    .await;
                     game.advance_turn().await;
                 }
                 Action::BuyAll => {

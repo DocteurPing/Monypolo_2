@@ -8,6 +8,7 @@ mod ui;
 use crate::communication::{setup_network, MessageReceiver, MessageSender};
 use crate::game_state::GamesState;
 use crate::ui::buttons::button_system;
+use crate::ui::toast;
 use bevy::input::common_conditions::input_toggle_active;
 use bevy::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -29,5 +30,6 @@ async fn main() {
         .add_systems(Update, board::roll_dice)
         .add_systems(Update, button_system)
         .add_systems(Update, helpers::camera::movement)
+        .add_systems(Update, toast::update_toasts)
         .run();
 }

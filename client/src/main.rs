@@ -3,9 +3,11 @@ mod communication;
 mod game_state;
 mod helpers;
 mod tools;
+mod ui;
 
 use crate::communication::{setup_network, MessageReceiver, MessageSender};
 use crate::game_state::GamesState;
+use crate::ui::buttons::button_system;
 use bevy::input::common_conditions::input_toggle_active;
 use bevy::prelude::*;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
@@ -24,6 +26,8 @@ async fn main() {
             current_turn: 0,
             player_turn: Default::default(),
             board: MAP1.clone(),
+            can_roll: false,
+            buy_button_node_id: None,
         })
         .insert_resource(MessageReceiver(rx_server))
         .insert_resource(MessageSender(tx_client))
@@ -33,6 +37,7 @@ async fn main() {
         .add_systems(Startup, board::setup)
         .add_systems(Update, communication::receive_message)
         .add_systems(Update, board::roll_dice)
+        .add_systems(Update, button_system)
         .add_systems(Update, helpers::camera::movement)
         .run();
 }

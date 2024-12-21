@@ -1,5 +1,6 @@
 use crate::board::{convert_pos_to_coords, generate_positions, spawn_players};
-use bevy::prelude::{AssetServer, Commands, Entity, Query, Res, Resource, Transform, Vec3};
+use crate::ui::buttons::spawn_buy_buttons;
+use bevy::prelude::*;
 use bevy::utils::default;
 use shared::action::{Action, PlayerAction};
 use shared::board::Tile::Property;
@@ -21,6 +22,8 @@ pub(crate) struct GamesState {
     pub(crate) current_turn: usize,
     pub(crate) player_turn: Uuid,
     pub(crate) board: Vec<shared::board::Tile>,
+    pub(crate) can_roll: bool,
+    pub(crate) buy_button_node_id: Option<Entity>,
 }
 
 pub(crate) fn handle_message_in_game(
@@ -36,6 +39,7 @@ pub(crate) fn handle_message_in_game(
             start_game(state, action, commands, asset_server);
         }
         Action::PlayerTurn => {
+            state.can_roll = true;
             state.player_turn = action.data.unwrap().parse::<Uuid>().unwrap();
             println!("Player {} turn", state.player_turn);
         }
@@ -68,6 +72,9 @@ pub(crate) fn handle_message_in_game(
                 "Player {} asked to buy property {}",
                 buy_property_data.player, buy_property_data.position
             );
+            if buy_property_data.player == state.id {
+                spawn_buy_buttons(commands, state);
+            }
         }
         Action::BuyProperty => {
             let buy_property_data: shared::action::BuyPropertyData =
@@ -143,7 +150,8 @@ fn move_player(state: &mut GamesState, transforms: &mut Query<&mut Transform>, r
         .unwrap() = Transform {
         translation: Vec3::new(pos.0, pos.1, 32f32),
         ..default()
-    }
+    };
+    state.can_roll = false;
 }
 
 fn start_game(

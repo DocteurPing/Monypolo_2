@@ -40,7 +40,11 @@ fn get_texture(asset_server: &Res<AssetServer>, i: usize) -> Handle<Image> {
 pub(crate) fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         Camera2d,
-        Transform::from_xyz(0.0, -TILE_HEIGHT * ((GRID_SIZE as f32 / 3.0).round() + 1.0), 100.0),
+        Transform::from_xyz(
+            0.0,
+            -TILE_HEIGHT * ((GRID_SIZE as f32 / 3.0).round() + 1.0),
+            100.0,
+        ),
     ));
 
     for (i, (col, row)) in generate_positions().iter().enumerate() {
@@ -124,7 +128,10 @@ pub(crate) fn roll_dice(
     sender: Res<MessageSender>,
     games_state: Res<GamesState>,
 ) {
-    if keyboard_input.just_pressed(KeyCode::Space) && games_state.player_turn == games_state.id {
+    if keyboard_input.just_pressed(KeyCode::Space)
+        && games_state.player_turn == games_state.id
+        && games_state.can_roll
+    {
         println!("Rolling dice");
         // Spawn a new async task to send the action
         let sender = sender.clone();

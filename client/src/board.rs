@@ -3,7 +3,10 @@ use crate::game_state::{GamesState, Player};
 use bevy::asset::Handle;
 use bevy::image::Image;
 use bevy::input::ButtonInput;
-use bevy::prelude::{AssetServer, Camera2d, Commands, KeyCode, Name, Res, Sprite, Transform};
+use bevy::prelude::{
+    AssetServer, BuildChildren, Camera2d, ChildBuild, Commands, DespawnRecursiveExt, KeyCode, Name,
+    Res, ResMut, Sprite, Transform,
+};
 use bevy::tasks::AsyncComputeTaskPool;
 use shared::action::{Action, PlayerAction, PlayerIdentifyData};
 use shared::board::Tile;
@@ -36,7 +39,11 @@ fn get_texture(asset_server: &Res<AssetServer>, i: usize) -> Handle<Image> {
     }
 }
 
-pub(crate) fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+pub(crate) fn setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut games_state: ResMut<GamesState>,
+) {
     commands.spawn((
         Camera2d,
         Transform::from_xyz(
@@ -49,14 +56,18 @@ pub(crate) fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     for (i, (col, row)) in generate_positions().iter().enumerate() {
         let x = (col - row) * (TILE_WIDTH / 2.0);
         let y = -(col + row) * (TILE_HEIGHT / 2.0);
-        commands.spawn((
-            Sprite {
-                image: get_texture(&asset_server, i),
-                ..Default::default()
-            },
-            Transform::from_xyz(x, y, row + col),
-            Name::new(format!("Tile_{}", i)),
-        ));
+        games_state.board_entity.push(
+            commands
+                .spawn((
+                    Sprite {
+                        image: get_texture(&asset_server, i),
+                        ..Default::default()
+                    },
+                    Transform::from_xyz(x, y, row + col),
+                    Name::new(format!("Tile_{}", i)),
+                ))
+                .id(),
+        );
     }
 }
 
@@ -78,7 +89,7 @@ pub(crate) fn generate_positions() -> Vec<(f32, f32)> {
 
     // Left column (bottom to top)
     for row in (1..GRID_SIZE - 1).rev() {
-        positions.push((0 as f32, row as f32));
+        positions.push((0f32, row as f32));
     }
     positions
 }
@@ -118,6 +129,7 @@ pub(crate) fn spawn_players(
                 position: 0,
                 is_in_jail: false,
                 entity: player_entity,
+                player_number: i,
             },
         );
     }
@@ -149,4 +161,28 @@ pub(crate) fn roll_dice(
             })
             .detach();
     }
+}
+
+pub(crate) fn add_player_banner(
+    commands: &mut Commands,
+    asset_server: &Res<AssetServer>,
+    state: &mut GamesState,
+) {
+    let player_texture = asset_server
+        .load(SPRITES_PATH[state.players.get(&state.player_turn).unwrap().player_number]);
+    commands
+        .entity(state.board_entity[state.players.get(&state.player_turn).unwrap().position])
+        .despawn_descendants();
+    commands
+        .entity(state.board_entity[state.players.get(&state.player_turn).unwrap().position])
+        .with_children(|parent| {
+            parent.spawn((
+                Sprite {
+                    image: player_texture,
+                    ..Default::default()
+                },
+                Transform::from_xyz(0.0, 0.0, 50.0),
+                Name::new(format!("Banner_{}", state.player_turn)),
+            ));
+        });
 }

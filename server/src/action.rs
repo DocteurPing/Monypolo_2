@@ -137,8 +137,7 @@ async fn pay_rent_or_buy(game: &mut Game, uuid: &Uuid, rent_price: u32, owner: &
             Some(to_string(&pay_rent_data).unwrap()),
         )
         .await;
-        game.advance_turn().await;
-    } else {
+    } else if game.players[game.player_turn].money >= rent_price {
         send_to_all_players(
             &game.players,
             Action::AskBuyProperty,
@@ -151,7 +150,9 @@ async fn pay_rent_or_buy(game: &mut Game, uuid: &Uuid, rent_price: u32, owner: &
             ),
         )
         .await;
+        return;
     }
+    game.advance_turn().await;
 }
 
 pub(crate) async fn buy_property(uuid: Uuid, game: &mut Game) {

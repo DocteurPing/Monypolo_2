@@ -1,4 +1,4 @@
-use crate::board::{convert_pos_to_coords, generate_positions, spawn_players};
+use crate::board::{add_player_banner, convert_pos_to_coords, generate_positions, spawn_players};
 use crate::ui::buttons::spawn_buy_buttons;
 use crate::ui::toast::spawn_toast;
 use bevy::prelude::*;
@@ -16,6 +16,7 @@ pub(crate) struct Player {
     pub(crate) position: usize,
     pub(crate) is_in_jail: bool,
     pub(crate) entity: Entity,
+    pub(crate) player_number: usize,
 }
 
 #[derive(Resource, Debug)]
@@ -25,6 +26,7 @@ pub(crate) struct GamesState {
     pub(crate) current_turn: usize,
     pub(crate) player_turn: Uuid,
     pub(crate) board: Vec<shared::board::Tile>,
+    pub(crate) board_entity: Vec<Entity>,
     pub(crate) can_roll: bool,
     pub(crate) buy_button_node_id: Option<Entity>,
 }
@@ -37,6 +39,7 @@ impl Default for GamesState {
             current_turn: 0,
             player_turn: Uuid::new_v4(),
             board: MAP1.clone(),
+            board_entity: vec![],
             can_roll: false,
             buy_button_node_id: None,
         }
@@ -94,32 +97,7 @@ pub(crate) fn handle_message_in_game(
             }
         }
         Action::BuyProperty => {
-            let buy_property_data: shared::action::BuyPropertyData =
-                serde_json::from_str(&action.data.unwrap()).unwrap();
-            let player = state.players.get_mut(&buy_property_data.player).unwrap();
-            // Get the property tile
-            if let Property {
-                ref mut owner,
-                cost,
-                ..
-            } = &mut state.board[player.position]
-            {
-                player.money -= cost[0];
-                *owner = Some(buy_property_data.player);
-                println!(
-                    "Player {} bought property {}",
-                    buy_property_data.player, buy_property_data.position
-                );
-                println!("Property is now {:?}", state.board[player.position]);
-                spawn_toast(
-                    commands,
-                    format!(
-                        "{} bought the property!",
-                        state.players.get(&state.player_turn).unwrap().name
-                    ),
-                    2.0,
-                );
-            }
+            buy_property(state, commands, action, asset_server);
         }
         Action::GoToJail => {
             let jail_pos = state
@@ -166,6 +144,41 @@ pub(crate) fn handle_message_in_game(
         }
         _ => {}
     }
+}
+
+fn buy_property(
+    state: &mut GamesState,
+    commands: &mut Commands,
+    action: PlayerAction,
+    asset_server: &Res<AssetServer>,
+) {
+    let buy_property_data: shared::action::BuyPropertyData =
+        serde_json::from_str(action.data.unwrap().as_str()).unwrap();
+    let player = state.players.get_mut(&buy_property_data.player).unwrap();
+    // Get the property tile
+    if let Property {
+        ref mut owner,
+        cost,
+        ..
+    } = &mut state.board[player.position]
+    {
+        player.money -= cost[0];
+        *owner = Some(buy_property_data.player);
+        println!(
+            "Player {} bought property {}",
+            buy_property_data.player, buy_property_data.position
+        );
+        println!("Property is now {:?}", state.board[player.position]);
+        spawn_toast(
+            commands,
+            format!(
+                "{} bought the property!",
+                state.players.get(&state.player_turn).unwrap().name
+            ),
+            2.0,
+        );
+    }
+    add_player_banner(commands, asset_server, state);
 }
 
 fn move_player(state: &mut GamesState, transforms: &mut Query<&mut Transform>, roll: usize) {

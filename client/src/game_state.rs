@@ -4,7 +4,7 @@ use crate::ui::toast::spawn_toast;
 use bevy::prelude::*;
 use bevy::utils::default;
 use shared::action::{Action, BuyPropertyData, PlayerAction, PlayerIdentifyData};
-use shared::board::Tile::Property;
+use shared::board::Tile::{Property, Railroad};
 use shared::maps::map1::MAP1;
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -155,29 +155,32 @@ fn buy_property(
     let buy_property_data: BuyPropertyData =
         serde_json::from_str(action.data.unwrap().as_str()).unwrap();
     let player = state.players.get_mut(&buy_property_data.player).unwrap();
+    let mut tile_owner: &mut Option<Uuid> = &mut None;
+    let mut tile_cost = 0;
     // Get the property tile
-    if let Property {
-        ref mut owner,
-        cost,
-        ..
-    } = &mut state.board[player.position]
-    {
-        player.money -= cost[0];
-        *owner = Some(buy_property_data.player);
-        println!(
-            "Player {} bought property {}",
-            buy_property_data.player, buy_property_data.position
-        );
-        println!("Property is now {:?}", state.board[player.position]);
-        spawn_toast(
-            commands,
-            format!(
-                "{} bought the property!",
-                state.players.get(&state.player_turn).unwrap().name
-            ),
-            2.0,
-        );
+    if let Some((owner, cost)) = match &mut state.board[player.position] {
+        Property { owner, cost, .. } => Some((owner, cost[0])),
+        Railroad { owner, cost, .. } => Some((owner, *cost)),
+        _ => None,
+    } {
+        tile_owner = owner;
+        tile_cost = cost;
     }
+    player.money -= tile_cost;
+    *tile_owner = Some(buy_property_data.player);
+    println!(
+        "Player {} bought property {}",
+        buy_property_data.player, buy_property_data.position
+    );
+    println!("Property is now {:?}", state.board[player.position]);
+    spawn_toast(
+        commands,
+        format!(
+            "{} bought the property!",
+            state.players.get(&state.player_turn).unwrap().name
+        ),
+        2.0,
+    );
     add_player_banner(commands, asset_server, state);
 }
 

@@ -1,5 +1,6 @@
 use crate::communication::MessageSender;
 use crate::game_state::{GamesState, Player};
+use crate::ui::money::MoneyText;
 use bevy::asset::Handle;
 use bevy::image::Image;
 use bevy::input::ButtonInput;
@@ -68,7 +69,7 @@ pub(crate) fn setup(
     }
 
     commands.spawn((
-        Text::new("Score:"),
+        Text::new("Money:"),
         TextFont {
             font_size: 33.0,
             ..default()
@@ -80,6 +81,7 @@ pub(crate) fn setup(
             left: Val::Px(5.0),
             ..default()
         },
+        MoneyText,
     ));
 }
 

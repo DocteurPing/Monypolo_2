@@ -1,6 +1,6 @@
 use crate::board::{add_player_banner, convert_pos_to_coords, generate_positions, spawn_players};
 use crate::ui::buttons::spawn_buy_buttons;
-use crate::ui::toast::spawn_toast;
+use crate::ui::toast::{spawn_toast, ToastCount};
 use bevy::prelude::*;
 use bevy::utils::default;
 use shared::action::{Action, BuyPropertyData, PlayerAction, PlayerIdentifyData};
@@ -52,12 +52,13 @@ pub(crate) fn handle_message_in_game(
     commands: &mut Commands,
     asset_server: &Res<AssetServer>,
     mut transforms: Query<&mut Transform>,
+    toast_count: ResMut<ToastCount>,
 ) {
     let action: PlayerAction = serde_json::from_str(message).unwrap();
     match action.action_type {
         Action::GameStart => {
             start_game(state, action, commands, asset_server);
-            spawn_toast(commands, "Game started!".to_string(), 2.0);
+            spawn_toast(commands, "Game started!".to_string(), 2.0, toast_count);
         }
         Action::PlayerTurn => {
             state.can_roll = true;
@@ -70,6 +71,7 @@ pub(crate) fn handle_message_in_game(
                     state.players.get(&state.player_turn).unwrap().name
                 ),
                 2.0,
+                toast_count,
             );
         }
         Action::Identify => {
@@ -102,6 +104,7 @@ pub(crate) fn handle_message_in_game(
                     state.players.get(&data.owner).unwrap().name
                 ),
                 2.0,
+                toast_count,
             );
         }
         Action::AskBuyProperty => {
@@ -116,7 +119,7 @@ pub(crate) fn handle_message_in_game(
             }
         }
         Action::BuyProperty => {
-            buy_property(state, commands, action, asset_server);
+            buy_property(state, commands, action, asset_server, toast_count);
         }
         Action::GoToJail => {
             let jail_pos = state
@@ -138,6 +141,7 @@ pub(crate) fn handle_message_in_game(
                     state.players.get(&state.player_turn).unwrap().name
                 ),
                 2.0,
+                toast_count,
             );
         }
         Action::PlayerGoTile => {
@@ -160,6 +164,7 @@ pub(crate) fn handle_message_in_game(
                     data.amount
                 ),
                 2.0,
+                toast_count,
             );
         }
         Action::Roll => {
@@ -175,6 +180,7 @@ pub(crate) fn handle_message_in_game(
                     data.dice2
                 ),
                 2.0,
+                toast_count,
             );
         }
         Action::SkipBuyProperty => {
@@ -186,6 +192,7 @@ pub(crate) fn handle_message_in_game(
                     state.players.get(&state.player_turn).unwrap().name
                 ),
                 2.0,
+                toast_count,
             );
         }
         _ => {}
@@ -197,6 +204,7 @@ fn buy_property(
     commands: &mut Commands,
     action: PlayerAction,
     asset_server: &Res<AssetServer>,
+    toast_count: ResMut<ToastCount>,
 ) {
     let buy_property_data: BuyPropertyData =
         serde_json::from_str(action.data.unwrap().as_str()).unwrap();
@@ -226,6 +234,7 @@ fn buy_property(
             state.players.get(&state.player_turn).unwrap().name
         ),
         2.0,
+        toast_count,
     );
     add_player_banner(commands, asset_server, state);
 }

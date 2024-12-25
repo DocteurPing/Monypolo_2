@@ -1,4 +1,5 @@
 use crate::game_state::{handle_message_in_game, GamesState};
+use crate::ui::toast::ToastCount;
 use async_channel::{unbounded, Receiver, Sender};
 use bevy::prelude::{
     AssetServer, Commands, Deref, DerefMut, Query, Res, ResMut, Resource, Transform,
@@ -112,6 +113,7 @@ pub(crate) fn receive_message(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     transforms: Query<&mut Transform>,
+    toast_count: ResMut<ToastCount>,
 ) {
     if let Ok(message) = receiver.0.try_recv() {
         println!("Processing message: {}", message.trim());
@@ -123,6 +125,7 @@ pub(crate) fn receive_message(
             &mut commands,
             &asset_server,
             transforms,
+            toast_count,
         );
     }
 }

@@ -4,7 +4,7 @@ use crate::ui::toast::{spawn_toast, ToastCount};
 use bevy::prelude::*;
 use bevy::utils::default;
 use shared::action::{Action, BuyPropertyData, PlayerAction, PlayerIdentifyData};
-use shared::board::Tile::{Property, Railroad};
+use shared::board::Tile::{Property, Railroad, Utility};
 use shared::maps::map1::MAP1;
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -215,6 +215,7 @@ fn buy_property(
     if let Some((owner, cost)) = match &mut state.board[player.position] {
         Property { owner, cost, .. } => Some((owner, cost[0])),
         Railroad { owner, cost, .. } => Some((owner, *cost)),
+        Utility { owner, cost, .. } => Some((owner, *cost)),
         _ => None,
     } {
         tile_owner = owner;

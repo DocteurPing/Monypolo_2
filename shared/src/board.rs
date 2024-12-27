@@ -15,7 +15,7 @@ pub enum Tile {
     Property {
         name: String,
         cost: Vec<u32>,
-        rent: Vec<u32>,
+        rents: Vec<u32>,
         level: PropertyLevel,
         owner: Option<Uuid>,
     },
@@ -29,8 +29,12 @@ pub enum Tile {
     Railroad {
         owner: Option<Uuid>,
         cost: u32,
+        rents: Vec<u32>,
     },
-    Utility,
+    Utility {
+        cost: u32,
+        owner: Option<Uuid>,
+    },
     Tax,
     LuxuryTax,
 }

@@ -66,13 +66,17 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: Uuid) {
     .await;
     match game.board[game.players[game.player_turn].position].clone() {
         Property {
-            rent, level, owner, ..
+            rents,
+            level,
+            owner,
+            ..
         } => {
-            pay_rent_or_buy(game, &uuid, rent[level.clone() as usize], &owner).await;
+            pay_rent_or_buy(game, &uuid, rents[level.clone() as usize], &owner).await;
             return;
         }
-        Railroad { owner, .. } => {
-            pay_rent_or_buy(game, &uuid, 25, &owner).await;
+        Railroad { owner, rents, .. } => {
+            let rent = get_rent_railroad(rents, &owner, game);
+            pay_rent_or_buy(game, &uuid, rent, &owner).await;
             return;
         }
         Chance { .. } => {}
@@ -108,9 +112,37 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: Uuid) {
             .await;
         }
         FreeParking => {}
+        Utility { owner, .. } => {
+            let rent = calculate_utility_cost(roll, &owner, game);
+            pay_rent_or_buy(game, &uuid, rent, &owner).await;
+            return;
+        }
         _ => {}
     }
     game.advance_turn().await;
+}
+
+fn calculate_utility_cost(dice_roll: u8, owner: &Option<Uuid>, game: &mut Game) -> u32 {
+    if let Some(owner) = owner {
+        let number_utilities = game.board.iter().filter(|tile| matches!(tile, Utility { owner: Some(tile_owner), .. } if tile_owner == owner)).count() as u32;
+        return match number_utilities {
+            1 => 4 * dice_roll as u32,
+            2 => 10 * dice_roll as u32,
+            _ => 0,
+        };
+    }
+    0
+}
+
+fn get_rent_railroad(rent: Vec<u32>, owner: &Option<Uuid>, game: &mut Game) -> u32 {
+    if let Some(owner_id) = owner {
+        return rent[game
+            .board
+            .iter()
+            .filter(|tile| matches!(tile, Railroad { owner: Some(tile_owner), .. } if tile_owner == owner_id))
+            .count()];
+    }
+    0
 }
 
 async fn pay_rent_or_buy(game: &mut Game, uuid: &Uuid, rent_price: u32, owner: &Option<Uuid>) {
@@ -191,6 +223,7 @@ pub(crate) async fn buy_property(uuid: Uuid, game: &mut Game) {
         Railroad {
             ref mut owner,
             cost,
+            ..
         } if owner.is_none() => {
             if player.money >= *cost {
                 player.money -= *cost;

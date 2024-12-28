@@ -2,7 +2,9 @@ use crate::communication::send_to_all_players;
 use crate::game_state::{Game, Player};
 use serde_json::to_string;
 use shared::action::Action::PayRent;
-use shared::action::{Action, BuyPropertyData, DiceRollData, PayRentData, PlayerGoTileData};
+use shared::action::{
+    Action, BuyPropertyData, DiceRollData, PayRentData, PlayerGoTileData, PlayerPayTaxData,
+};
 use shared::board::Tile::*;
 use uuid::Uuid;
 
@@ -117,7 +119,21 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: Uuid) {
             pay_rent_or_buy(game, &uuid, rent, &owner).await;
             return;
         }
-        _ => {}
+        Tax { price } | LuxuryTax { price } => {
+            game.players[game.player_turn].money -= price;
+            send_to_all_players(
+                &game.players,
+                Action::PayTax,
+                Some(
+                    to_string(&PlayerPayTaxData {
+                        player: game.players[game.player_turn].id,
+                        amount: price,
+                    })
+                    .unwrap(),
+                ),
+            )
+            .await;
+        }
     }
     game.advance_turn().await;
 }
@@ -194,11 +210,11 @@ pub(crate) async fn buy_property(uuid: Uuid, game: &mut Game) {
     match tile {
         Property {
             ref mut owner,
-            cost,
+            costs,
             ..
         } if owner.is_none() => {
-            if player.money >= cost[0] {
-                player.money -= cost[0];
+            if player.money >= costs[0] {
+                player.money -= costs[0];
                 *owner = Some(uuid);
                 println!(
                     "Player {} bought property money of the player {}",
@@ -224,6 +240,10 @@ pub(crate) async fn buy_property(uuid: Uuid, game: &mut Game) {
             ref mut owner,
             cost,
             ..
+        }
+        | Utility {
+            ref mut owner,
+            cost,
         } if owner.is_none() => {
             if player.money >= *cost {
                 player.money -= *cost;

@@ -32,8 +32,8 @@ fn get_texture(asset_server: &Res<AssetServer>, i: usize) -> Handle<Image> {
         Tile::FreeParking => asset_server.load("textures/abstractTile_08.png"),
         Tile::Railroad { .. } => asset_server.load("textures/platformerTile_04.png"),
         Tile::Utility { .. } => asset_server.load("textures/abstractTile_29.png"),
-        Tile::Tax => asset_server.load("textures/platformerTile_42.png"),
-        Tile::LuxuryTax => asset_server.load("textures/platformerTile_44.png"),
+        Tile::Tax { .. } => asset_server.load("textures/platformerTile_42.png"),
+        Tile::LuxuryTax { .. } => asset_server.load("textures/platformerTile_44.png"),
     }
 }
 

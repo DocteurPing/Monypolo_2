@@ -49,7 +49,7 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &Arc<ServerStat
                     game.advance_turn().await;
                 }
                 Action::BuyAll => {
-                    // Buy all properties
+                    // Buy all properties for debug purpose only
                     println!("Player {} bought all properties", uuid);
                     for tile in game.board.iter_mut() {
                         if let Property { ref mut owner, .. } = tile {

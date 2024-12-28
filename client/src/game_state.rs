@@ -195,6 +195,24 @@ pub(crate) fn handle_message_in_game(
                 toast_count,
             );
         }
+        Action::PayTax => {
+            let data =
+                serde_json::from_str::<shared::action::PlayerPayTaxData>(&action.data.unwrap())
+                    .unwrap();
+            let player = state.players.get_mut(&data.player).unwrap();
+            player.money -= data.amount;
+            println!("Player {} paid {} tax", data.player, data.amount);
+            spawn_toast(
+                commands,
+                format!(
+                    "Player {} paid {} tax",
+                    state.players.get(&state.player_turn).unwrap().name,
+                    data.amount
+                ),
+                2.0,
+                toast_count,
+            );
+        }
         _ => {}
     }
 }
@@ -213,7 +231,7 @@ fn buy_property(
     let mut tile_cost = 0;
     // Get the property tile
     if let Some((owner, cost)) = match &mut state.board[player.position] {
-        Property { owner, cost, .. } => Some((owner, cost[0])),
+        Property { owner, costs, .. } => Some((owner, costs[0])),
         Railroad { owner, cost, .. } => Some((owner, *cost)),
         Utility { owner, cost, .. } => Some((owner, *cost)),
         _ => None,

@@ -18,6 +18,7 @@ pub enum Action {
     GoToJail,
     PlayerGoTile,
     FreeFromJail,
+    PayTax
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -55,4 +56,10 @@ pub struct DiceRollData {
 pub struct PlayerIdentifyData {
     pub id: Uuid,
     pub name: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct PlayerPayTaxData {
+    pub player: Uuid,
+    pub amount: u32,
 }

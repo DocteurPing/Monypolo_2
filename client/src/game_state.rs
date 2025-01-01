@@ -226,6 +226,19 @@ pub(crate) fn handle_message_in_game(
                 toast_count,
             );
         }
+        Action::GameOver => {
+            let winner = state
+                .players
+                .get(&action.data.unwrap().parse::<Uuid>().unwrap())
+                .unwrap();
+            println!("Game over!");
+            spawn_toast(
+                commands,
+                format!("Game over! The winner is {}", winner.name),
+                20.0,
+                toast_count,
+            );
+        }
         _ => {}
     }
 }

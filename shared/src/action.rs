@@ -20,6 +20,7 @@ pub enum Action {
     FreeFromJail,
     PayTax,
     PlayerBankrupt,
+    GameOver,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

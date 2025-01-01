@@ -49,6 +49,18 @@ pub(crate) struct Game {
 
 impl Game {
     pub(crate) async fn advance_turn(&mut self) {
+        // Check if more than one player is not bankrupt
+        let number_players_left = self.players.iter().filter(|p| !p.is_bankrupt).count();
+        if number_players_left == 1 {
+            let winner = self.players.iter().find(|p| !p.is_bankrupt).unwrap();
+            send_to_all_players(
+                &self.players,
+                shared::action::Action::GameOver,
+                Some(winner.id.to_string()),
+            )
+            .await;
+            return;
+        }
         self.current_turn += 1;
         self.player_turn = (self.player_turn + 1) % self.players.len();
         while self.players[self.player_turn].is_bankrupt {

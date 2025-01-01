@@ -120,6 +120,18 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: Uuid) {
             return;
         }
         Tax { price } | LuxuryTax { price } => {
+            if game.players[game.player_turn].money < price {
+                println!("Player {} does not have enough money to pay tax", uuid);
+                game.players[game.player_turn].is_bankrupt = true;
+                send_to_all_players(
+                    &game.players,
+                    Action::PlayerBankrupt,
+                    Some(uuid.to_string()),
+                )
+                .await;
+                game.advance_turn().await;
+                return;
+            }
             game.players[game.player_turn].money -= price;
             send_to_all_players(
                 &game.players,
@@ -163,6 +175,18 @@ fn get_rent_railroad(rent: Vec<u32>, owner: &Option<Uuid>, game: &mut Game) -> u
 
 async fn pay_rent_or_buy(game: &mut Game, uuid: &Uuid, rent_price: u32, owner: &Option<Uuid>) {
     if owner.is_some() && owner.unwrap() != *uuid {
+        if game.players[game.player_turn].money < rent_price {
+            println!("Player {} does not have enough money to pay rent", uuid);
+            game.players[game.player_turn].is_bankrupt = true;
+            send_to_all_players(
+                &game.players,
+                Action::PlayerBankrupt,
+                Some(uuid.to_string()),
+            )
+            .await;
+            game.advance_turn().await;
+            return;
+        }
         game.players[game.player_turn].money -= rent_price;
         let owner_player: &mut Player = game
             .players

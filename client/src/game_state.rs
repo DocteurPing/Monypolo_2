@@ -17,6 +17,7 @@ pub(crate) struct Player {
     pub(crate) is_in_jail: bool,
     pub(crate) entity: Entity,
     pub(crate) player_number: usize,
+    pub(crate) is_bankrupt: bool,
 }
 
 #[derive(Resource, Debug)]
@@ -108,7 +109,7 @@ pub(crate) fn handle_message_in_game(
             );
         }
         Action::AskBuyProperty => {
-            let buy_property_data: shared::action::BuyPropertyData =
+            let buy_property_data: BuyPropertyData =
                 serde_json::from_str(&action.data.unwrap()).unwrap();
             println!(
                 "Player {} asked to buy property {}",
@@ -209,6 +210,18 @@ pub(crate) fn handle_message_in_game(
                     state.players.get(&state.player_turn).unwrap().name,
                     data.amount
                 ),
+                2.0,
+                toast_count,
+            );
+        }
+        Action::PlayerBankrupt => {
+            let data = action.data.unwrap().parse::<Uuid>().unwrap();
+            let player = state.players.get_mut(&data).unwrap();
+            player.is_bankrupt = true;
+            println!("Player {} is bankrupt", player.name);
+            spawn_toast(
+                commands,
+                format!("{} is bankrupt!", player.name),
                 2.0,
                 toast_count,
             );

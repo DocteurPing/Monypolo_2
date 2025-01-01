@@ -144,6 +144,7 @@ pub(crate) fn spawn_players(
                 is_in_jail: false,
                 entity: player_entity,
                 player_number: i,
+                is_bankrupt: false,
             },
         );
     }

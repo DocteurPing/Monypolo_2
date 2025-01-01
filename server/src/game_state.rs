@@ -15,6 +15,7 @@ pub struct Player {
     pub(crate) position: usize,
     pub(crate) is_in_jail: bool,
     pub(crate) jail_turns: u8,
+    pub(crate) is_bankrupt: bool,
 }
 
 impl Player {
@@ -27,6 +28,7 @@ impl Player {
             position: 0,
             is_in_jail: false,
             jail_turns: 0,
+            is_bankrupt: false,
         }
     }
 }
@@ -49,6 +51,9 @@ impl Game {
     pub(crate) async fn advance_turn(&mut self) {
         self.current_turn += 1;
         self.player_turn = (self.player_turn + 1) % self.players.len();
+        while self.players[self.player_turn].is_bankrupt {
+            self.player_turn = (self.player_turn + 1) % self.players.len();
+        }
         send_to_all_players(
             &self.players,
             shared::action::Action::PlayerTurn,

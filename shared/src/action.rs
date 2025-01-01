@@ -18,7 +18,8 @@ pub enum Action {
     GoToJail,
     PlayerGoTile,
     FreeFromJail,
-    PayTax
+    PayTax,
+    PlayerBankrupt,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

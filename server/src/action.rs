@@ -71,14 +71,15 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: Uuid) {
             rents,
             level,
             owner,
+            costs,
             ..
         } => {
-            pay_rent_or_buy(game, &uuid, rents[level.clone() as usize], &owner).await;
+            pay_rent_or_buy(game, &uuid, rents[level.clone() as usize], &owner, costs[0]).await;
             return;
         }
-        Railroad { owner, rents, .. } => {
+        Railroad { owner, rents, cost, .. } => {
             let rent = get_rent_railroad(rents, &owner, game);
-            pay_rent_or_buy(game, &uuid, rent, &owner).await;
+            pay_rent_or_buy(game, &uuid, rent, &owner, cost).await;
             return;
         }
         Chance { .. } => {}
@@ -114,9 +115,9 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: Uuid) {
             .await;
         }
         FreeParking => {}
-        Utility { owner, .. } => {
+        Utility { owner, cost,.. } => {
             let rent = calculate_utility_cost(roll, &owner, game);
-            pay_rent_or_buy(game, &uuid, rent, &owner).await;
+            pay_rent_or_buy(game, &uuid, rent, &owner, cost).await;
             return;
         }
         Tax { price } | LuxuryTax { price } => {
@@ -173,7 +174,7 @@ fn get_rent_railroad(rent: Vec<u32>, owner: &Option<Uuid>, game: &mut Game) -> u
     0
 }
 
-async fn pay_rent_or_buy(game: &mut Game, uuid: &Uuid, rent_price: u32, owner: &Option<Uuid>) {
+async fn pay_rent_or_buy(game: &mut Game, uuid: &Uuid, rent_price: u32, owner: &Option<Uuid>, cost: u32) {
     if owner.is_some() && owner.unwrap() != *uuid {
         if game.players[game.player_turn].money < rent_price {
             println!("Player {} does not have enough money to pay rent", uuid);
@@ -209,7 +210,7 @@ async fn pay_rent_or_buy(game: &mut Game, uuid: &Uuid, rent_price: u32, owner: &
             Some(to_string(&pay_rent_data).unwrap()),
         )
         .await;
-    } else if game.players[game.player_turn].money >= rent_price {
+    } else if game.players[game.player_turn].money >= cost {
         send_to_all_players(
             &game.players,
             Action::AskBuyProperty,

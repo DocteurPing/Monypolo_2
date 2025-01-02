@@ -218,6 +218,7 @@ pub(crate) fn handle_message_in_game(
             let data = action.data.unwrap().parse::<Uuid>().unwrap();
             let player = state.players.get_mut(&data).unwrap();
             player.is_bankrupt = true;
+            player.money = 0;
             println!("Player {} is bankrupt", player.name);
             spawn_toast(
                 commands,

@@ -1,6 +1,7 @@
 use crate::communication::MessageSender;
 use crate::game_state::{GamesState, Player};
 use crate::ui::money::MoneyText;
+use crate::ui::name::NameText;
 use bevy::asset::Handle;
 use bevy::image::Image;
 use bevy::input::ButtonInput;
@@ -70,11 +71,6 @@ pub(crate) fn setup(
 
     commands.spawn((
         Text::new("Money:"),
-        TextFont {
-            font_size: 33.0,
-            ..default()
-        },
-        TextColor(Color::srgb(0.5, 0.5, 1.0)),
         Node {
             position_type: PositionType::Absolute,
             bottom: Val::Px(5.0),
@@ -82,6 +78,17 @@ pub(crate) fn setup(
             ..default()
         },
         MoneyText,
+    ));
+
+    commands.spawn((
+        Text::new("Name:"),
+        Node {
+            position_type: PositionType::Absolute,
+            top: Val::Px(5.0),
+            right: Val::Px(5.0),
+            ..default()
+        },
+        NameText,
     ));
 }
 

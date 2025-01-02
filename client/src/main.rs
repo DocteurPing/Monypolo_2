@@ -8,6 +8,7 @@ mod ui;
 use crate::communication::{setup_network, MessageReceiver, MessageSender};
 use crate::game_state::GamesState;
 use crate::ui::buttons::button_system;
+use crate::ui::name::name_system;
 use crate::ui::toast::ToastCount;
 use crate::ui::{money, toast};
 use bevy::input::common_conditions::input_toggle_active;
@@ -33,6 +34,7 @@ async fn main() {
         .add_systems(Update, button_system)
         .add_systems(Update, helpers::camera::movement)
         .add_systems(Update, money::scoreboard_system)
+        .add_systems(Update, name_system)
         .add_systems(Update, toast::update_toasts)
         .run();
 }

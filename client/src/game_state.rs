@@ -24,7 +24,6 @@ pub(crate) struct Player {
 pub(crate) struct GamesState {
     pub(crate) id: Uuid,
     pub(crate) players: HashMap<Uuid, Player>,
-    pub(crate) current_turn: usize,
     pub(crate) player_turn: Uuid,
     pub(crate) board: Vec<shared::board::Tile>,
     pub(crate) board_entity: Vec<Entity>,
@@ -37,7 +36,6 @@ impl Default for GamesState {
         GamesState {
             id: Uuid::new_v4(),
             players: HashMap::new(),
-            current_turn: 0,
             player_turn: Uuid::new_v4(),
             board: MAP1.clone(),
             board_entity: vec![],
@@ -58,22 +56,10 @@ pub(crate) fn handle_message_in_game(
     let action: PlayerAction = serde_json::from_str(message).unwrap();
     match action.action_type {
         Action::GameStart => {
-            start_game(state, action, commands, asset_server);
-            spawn_toast(commands, "Game started!".to_string(), 2.0, toast_count);
+            start_game(state, action, commands, asset_server, toast_count);
         }
         Action::PlayerTurn => {
-            state.can_roll = true;
-            state.player_turn = action.data.unwrap().parse::<Uuid>().unwrap();
-            println!("Player {} turn", state.player_turn);
-            spawn_toast(
-                commands,
-                format!(
-                    "{} turns!",
-                    state.players.get(&state.player_turn).unwrap().name
-                ),
-                2.0,
-                toast_count,
-            );
+            start_player_turn(state, commands, toast_count, action);
         }
         Action::Identify => {
             state.id = action.data.unwrap().parse::<Uuid>().unwrap();
@@ -87,161 +73,251 @@ pub(crate) fn handle_message_in_game(
             );
         }
         Action::PayRent => {
-            let data: shared::action::PayRentData =
-                serde_json::from_str(&action.data.unwrap()).unwrap();
-            let rent_price = data.rent;
-            state.players.get_mut(&data.player).unwrap().money -= rent_price;
-            state.players.get_mut(&data.owner).unwrap().money += rent_price;
-            println!(
-                "Player {} paid rent of {} to Player {}",
-                data.player, rent_price, data.owner
-            );
-            spawn_toast(
-                commands,
-                format!(
-                    "{} paid rent of {} to {}",
-                    state.players.get(&state.player_turn).unwrap().name,
-                    rent_price,
-                    state.players.get(&data.owner).unwrap().name
-                ),
-                2.0,
-                toast_count,
-            );
+            pay_rent(state, commands, toast_count, action);
         }
         Action::AskBuyProperty => {
-            let buy_property_data: BuyPropertyData =
-                serde_json::from_str(&action.data.unwrap()).unwrap();
-            println!(
-                "Player {} asked to buy property {}",
-                buy_property_data.player, buy_property_data.position
-            );
-            if buy_property_data.player == state.id {
-                spawn_buy_buttons(commands, state);
-            }
+            ask_buy_property(state, commands, action);
         }
         Action::BuyProperty => {
             buy_property(state, commands, action, asset_server, toast_count);
         }
         Action::GoToJail => {
-            let jail_pos = state
-                .board
-                .iter()
-                .position(|tile| matches!(tile, shared::board::Tile::Jail))
-                .unwrap();
-            move_player(state, &mut transforms, jail_pos);
-            state
-                .players
-                .get_mut(&state.player_turn)
-                .unwrap()
-                .is_in_jail = true;
-            println!("Player {} is in jail", state.player_turn);
-            spawn_toast(
-                commands,
-                format!(
-                    "{} is going to jail!",
-                    state.players.get(&state.player_turn).unwrap().name
-                ),
-                2.0,
-                toast_count,
-            );
+            send_to_jail(state, commands, &mut transforms, toast_count);
         }
         Action::PlayerGoTile => {
-            let data =
-                serde_json::from_str::<shared::action::PlayerGoTileData>(&action.data.unwrap())
-                    .unwrap();
-            let player = state.players.get_mut(&data.player).unwrap();
-            player.money += data.amount;
-            println!("Player {} got {} money", data.player, data.amount);
-            println!(
-                "Player {} money: {}",
-                data.player,
-                state.players.get_mut(&data.player).unwrap().money
-            );
-            spawn_toast(
-                commands,
-                format!(
-                    "{} got {} money!",
-                    state.players.get(&state.player_turn).unwrap().name,
-                    data.amount
-                ),
-                2.0,
-                toast_count,
-            );
+            move_to_go_tile(state, commands, toast_count, action);
         }
         Action::Roll => {
-            let data = serde_json::from_str::<shared::action::DiceRollData>(&action.data.unwrap())
-                .unwrap();
-            println!("Player rolled {} and {}", data.dice1, data.dice2);
-            spawn_toast(
-                commands,
-                format!(
-                    "{} rolled {} and {}",
-                    state.players.get(&state.player_turn).unwrap().name,
-                    data.dice1,
-                    data.dice2
-                ),
-                2.0,
-                toast_count,
-            );
+            show_roll_data(state, commands, toast_count, action);
         }
         Action::SkipBuyProperty => {
-            println!("Player skipped buying property");
-            spawn_toast(
-                commands,
-                format!(
-                    "{} skipped buying the property!",
-                    state.players.get(&state.player_turn).unwrap().name
-                ),
-                2.0,
-                toast_count,
-            );
+            skip_buy_property(state, commands, toast_count);
         }
         Action::PayTax => {
-            let data =
-                serde_json::from_str::<shared::action::PlayerPayTaxData>(&action.data.unwrap())
-                    .unwrap();
-            let player = state.players.get_mut(&data.player).unwrap();
-            player.money -= data.amount;
-            println!("Player {} paid {} tax", data.player, data.amount);
-            spawn_toast(
-                commands,
-                format!(
-                    "Player {} paid {} tax",
-                    state.players.get(&state.player_turn).unwrap().name,
-                    data.amount
-                ),
-                2.0,
-                toast_count,
-            );
+            pay_tax(state, commands, toast_count, action);
         }
         Action::PlayerBankrupt => {
-            let data = action.data.unwrap().parse::<Uuid>().unwrap();
-            let player = state.players.get_mut(&data).unwrap();
-            player.is_bankrupt = true;
-            player.money = 0;
-            println!("Player {} is bankrupt", player.name);
-            spawn_toast(
-                commands,
-                format!("{} is bankrupt!", player.name),
-                2.0,
-                toast_count,
-            );
+            set_player_bankrupt(state, commands, toast_count, action);
         }
         Action::GameOver => {
-            let winner = state
-                .players
-                .get(&action.data.unwrap().parse::<Uuid>().unwrap())
-                .unwrap();
-            println!("Game over!");
-            spawn_toast(
-                commands,
-                format!("Game over! The winner is {}", winner.name),
-                20.0,
-                toast_count,
-            );
+            end_game(state, commands, toast_count, action);
         }
         _ => {}
     }
+}
+
+fn skip_buy_property(
+    state: &mut GamesState,
+    commands: &mut Commands,
+    toast_count: ResMut<ToastCount>,
+) {
+    println!("Player skipped buying property");
+    spawn_toast(
+        commands,
+        format!(
+            "{} skipped buying the property!",
+            state.players.get(&state.player_turn).unwrap().name
+        ),
+        2.0,
+        toast_count,
+    );
+}
+
+fn pay_tax(
+    state: &mut GamesState,
+    commands: &mut Commands,
+    toast_count: ResMut<ToastCount>,
+    action: PlayerAction,
+) {
+    let data =
+        serde_json::from_str::<shared::action::PlayerPayTaxData>(&action.data.unwrap()).unwrap();
+    let player = state.players.get_mut(&data.player).unwrap();
+    player.money -= data.amount;
+    println!("Player {} paid {} tax", data.player, data.amount);
+    spawn_toast(
+        commands,
+        format!(
+            "Player {} paid {} tax",
+            state.players.get(&state.player_turn).unwrap().name,
+            data.amount
+        ),
+        2.0,
+        toast_count,
+    );
+}
+
+fn show_roll_data(
+    state: &mut GamesState,
+    commands: &mut Commands,
+    toast_count: ResMut<ToastCount>,
+    action: PlayerAction,
+) {
+    let data = serde_json::from_str::<shared::action::DiceRollData>(&action.data.unwrap()).unwrap();
+    println!("Player rolled {} and {}", data.dice1, data.dice2);
+    spawn_toast(
+        commands,
+        format!(
+            "{} rolled {} and {}",
+            state.players.get(&state.player_turn).unwrap().name,
+            data.dice1,
+            data.dice2
+        ),
+        2.0,
+        toast_count,
+    );
+}
+
+fn move_to_go_tile(
+    state: &mut GamesState,
+    commands: &mut Commands,
+    toast_count: ResMut<ToastCount>,
+    action: PlayerAction,
+) {
+    let data =
+        serde_json::from_str::<shared::action::PlayerGoTileData>(&action.data.unwrap()).unwrap();
+    let player = state.players.get_mut(&data.player).unwrap();
+    player.money += data.amount;
+    println!("Player {} got {} money", data.player, data.amount);
+    println!(
+        "Player {} money: {}",
+        data.player,
+        state.players.get_mut(&data.player).unwrap().money
+    );
+    spawn_toast(
+        commands,
+        format!(
+            "{} got {} money!",
+            state.players.get(&state.player_turn).unwrap().name,
+            data.amount
+        ),
+        2.0,
+        toast_count,
+    );
+}
+
+fn send_to_jail(
+    state: &mut GamesState,
+    commands: &mut Commands,
+    transforms: &mut Query<&mut Transform>,
+    toast_count: ResMut<ToastCount>,
+) {
+    let jail_pos = state
+        .board
+        .iter()
+        .position(|tile| matches!(tile, shared::board::Tile::Jail))
+        .unwrap();
+    move_player(state, transforms, jail_pos);
+    state
+        .players
+        .get_mut(&state.player_turn)
+        .unwrap()
+        .is_in_jail = true;
+    println!("Player {} is in jail", state.player_turn);
+    spawn_toast(
+        commands,
+        format!(
+            "{} is going to jail!",
+            state.players.get(&state.player_turn).unwrap().name
+        ),
+        2.0,
+        toast_count,
+    );
+}
+
+fn ask_buy_property(state: &mut GamesState, commands: &mut Commands, action: PlayerAction) {
+    let buy_property_data: BuyPropertyData = serde_json::from_str(&action.data.unwrap()).unwrap();
+    println!(
+        "Player {} asked to buy property {}",
+        buy_property_data.player, buy_property_data.position
+    );
+    if buy_property_data.player == state.id {
+        spawn_buy_buttons(commands, state);
+    }
+}
+
+fn pay_rent(
+    state: &mut GamesState,
+    commands: &mut Commands,
+    toast_count: ResMut<ToastCount>,
+    action: PlayerAction,
+) {
+    let data: shared::action::PayRentData = serde_json::from_str(&action.data.unwrap()).unwrap();
+    let rent_price = data.rent;
+    state.players.get_mut(&data.player).unwrap().money -= rent_price;
+    state.players.get_mut(&data.owner).unwrap().money += rent_price;
+    println!(
+        "Player {} paid rent of {} to Player {}",
+        data.player, rent_price, data.owner
+    );
+    spawn_toast(
+        commands,
+        format!(
+            "{} paid rent of {} to {}",
+            state.players.get(&state.player_turn).unwrap().name,
+            rent_price,
+            state.players.get(&data.owner).unwrap().name
+        ),
+        2.0,
+        toast_count,
+    );
+}
+
+fn set_player_bankrupt(
+    state: &mut GamesState,
+    commands: &mut Commands,
+    toast_count: ResMut<ToastCount>,
+    action: PlayerAction,
+) {
+    let data = action.data.unwrap().parse::<Uuid>().unwrap();
+    let player = state.players.get_mut(&data).unwrap();
+    player.is_bankrupt = true;
+    player.money = 0;
+    println!("Player {} is bankrupt", player.name);
+    spawn_toast(
+        commands,
+        format!("{} is bankrupt!", player.name),
+        2.0,
+        toast_count,
+    );
+}
+
+fn end_game(
+    state: &mut GamesState,
+    commands: &mut Commands,
+    toast_count: ResMut<ToastCount>,
+    action: PlayerAction,
+) {
+    let winner = state
+        .players
+        .get(&action.data.unwrap().parse::<Uuid>().unwrap())
+        .unwrap();
+    println!("Game over!");
+    spawn_toast(
+        commands,
+        format!("Game over! The winner is {}", winner.name),
+        20.0,
+        toast_count,
+    );
+}
+
+fn start_player_turn(
+    state: &mut GamesState,
+    commands: &mut Commands,
+    toast_count: ResMut<ToastCount>,
+    action: PlayerAction,
+) {
+    state.can_roll = true;
+    state.player_turn = action.data.unwrap().parse::<Uuid>().unwrap();
+    println!("Player {} turn", state.player_turn);
+    spawn_toast(
+        commands,
+        format!(
+            "{} turns!",
+            state.players.get(&state.player_turn).unwrap().name
+        ),
+        2.0,
+        toast_count,
+    );
 }
 
 fn buy_property(
@@ -312,6 +388,7 @@ fn start_game(
     action: PlayerAction,
     commands: &mut Commands,
     asset_server: &Res<AssetServer>,
+    toast_count: ResMut<ToastCount>,
 ) {
     let data = action.data.unwrap();
     let players_data = serde_json::from_str::<Vec<PlayerIdentifyData>>(&data).unwrap();
@@ -323,4 +400,5 @@ fn start_game(
         println!("Player {} joined the game", data.id);
     }
     spawn_players(commands, asset_server, players_data, state);
+    spawn_toast(commands, "Game started!".to_string(), 2.0, toast_count);
 }

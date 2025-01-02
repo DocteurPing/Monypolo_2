@@ -1,5 +1,6 @@
 use shared::action::Action;
 
+#[allow(dead_code)]
 pub trait ToAction {
     fn to_action(self) -> Action;
 }

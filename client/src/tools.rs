@@ -1,3 +1,4 @@
+use bevy::prelude::*;
 use shared::action::Action;
 
 #[allow(dead_code)]
@@ -15,5 +16,15 @@ impl ToAction for &str {
             "skip" => Action::SkipBuyProperty,
             _ => Action::Invalid,
         }
+    }
+}
+
+// Generic system that takes a component as a parameter, and will despawn all entities with that component
+pub(crate) fn despawn_screen<T: Component>(
+    to_despawn: Query<Entity, With<T>>,
+    mut commands: Commands,
+) {
+    for entity in &to_despawn {
+        commands.entity(entity).despawn_recursive();
     }
 }

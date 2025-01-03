@@ -1,7 +1,11 @@
 use crate::communication::MessageSender;
 use crate::game_state::{GamesState, Player};
+use crate::tools::despawn_screen;
+use crate::ui::buttons::button_system;
 use crate::ui::money::MoneyText;
-use crate::ui::name::NameText;
+use crate::ui::name::{name_system, NameText};
+use crate::ui::{money, toast};
+use crate::{communication, helpers, GameState};
 use bevy::asset::Handle;
 use bevy::image::Image;
 use bevy::input::ButtonInput;
@@ -13,7 +17,10 @@ use shared::maps::map1::MAP1;
 
 pub(crate) const TILE_WIDTH: f32 = 110.0; // Width of an isometric tile
 pub(crate) const TILE_HEIGHT: f32 = 63.0; // Height of an isometric tile
-const GRID_SIZE: usize = 11; // Number of tiles along one edge (must be odd)
+pub(crate) const GRID_SIZE: usize = 11; // Number of tiles along one edge (must be odd)
+
+#[derive(Component)]
+pub(crate) struct OnGameScreen;
 
 const SPRITES_PATH: [&str; 5] = [
     "sprites/alienBeige_badge2.png",
@@ -38,20 +45,23 @@ fn get_texture(asset_server: &Res<AssetServer>, i: usize) -> Handle<Image> {
     }
 }
 
-pub(crate) fn setup(
+pub fn game_plugin(app: &mut App) {
+    app.add_systems(OnEnter(GameState::Game), game_setup)
+        .add_systems(OnExit(GameState::Game), despawn_screen::<OnGameScreen>)
+        .add_systems(Update, communication::receive_message)
+        .add_systems(Update, button_system)
+        .add_systems(Update, helpers::camera::movement)
+        .add_systems(Update, money::scoreboard_system)
+        .add_systems(Update, name_system)
+        .add_systems(Update, toast::update_toasts)
+        .add_systems(Update, roll_dice);
+}
+
+pub(crate) fn game_setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut games_state: ResMut<GamesState>,
 ) {
-    commands.spawn((
-        Camera2d,
-        Transform::from_xyz(
-            0.0,
-            -TILE_HEIGHT * ((GRID_SIZE as f32 / 3.0).round() + 1.0),
-            100.0,
-        ),
-    ));
-
     for (i, (col, row)) in generate_positions().iter().enumerate() {
         let x = (col - row) * (TILE_WIDTH / 2.0);
         let y = -(col + row) * (TILE_HEIGHT / 2.0);

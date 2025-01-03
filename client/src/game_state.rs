@@ -1,4 +1,6 @@
-use crate::board::{add_player_banner, convert_pos_to_coords, generate_positions, spawn_players};
+use crate::screens::board::{
+    add_player_banner, convert_pos_to_coords, generate_positions, spawn_players,
+};
 use crate::ui::buttons::spawn_buy_buttons;
 use crate::ui::toast::{spawn_toast, ToastCount};
 use bevy::prelude::*;

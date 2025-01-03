@@ -11,6 +11,9 @@ const PRESSED_BUTTON: Color = Color::srgb(0.25, 0.25, 0.25);
 const BUY_BUTTON: &str = "Buy";
 const SKIP_BUTTON: &str = "Skip";
 
+#[derive(Component)]
+pub(crate) struct BuyButton;
+
 fn default_button(
     name: &str,
 ) -> (
@@ -20,6 +23,7 @@ fn default_button(
     BorderRadius,
     BackgroundColor,
     Name,
+    BuyButton,
 ) {
     (
         Button,
@@ -37,6 +41,7 @@ fn default_button(
         BorderRadius::MAX,
         BackgroundColor(NORMAL_BUTTON),
         Name::new(name.to_string()),
+        BuyButton,
     )
 }
 
@@ -70,6 +75,7 @@ pub(crate) fn remove_buy_buttons(mut commands: Commands, games_state: Res<GamesS
     }
 }
 
+#[allow(clippy::type_complexity)]
 pub(crate) fn button_system(
     mut interaction_query: Query<
         (
@@ -78,7 +84,7 @@ pub(crate) fn button_system(
             &mut BorderColor,
             &Children,
         ),
-        (Changed<Interaction>, With<Button>),
+        (Changed<Interaction>, With<BuyButton>),
     >,
     commands: Commands,
     games_state: Res<GamesState>,

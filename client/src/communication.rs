@@ -5,7 +5,6 @@ use bevy::prelude::{
     AssetServer, Commands, Deref, DerefMut, Query, Res, ResMut, Resource, Transform,
 };
 use shared::action::{Action, PlayerAction};
-use std::io;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::net::tcp::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::net::TcpStream;
@@ -15,16 +14,6 @@ pub(crate) struct MessageReceiver(pub Receiver<String>);
 
 #[derive(Resource, Clone)]
 pub(crate) struct MessageSender(pub Sender<PlayerAction>);
-
-pub(crate) async fn send_name(writer: &mut OwnedWriteHalf) {
-    // Get the player's name
-    println!("Enter your name:");
-    let mut buf = String::new();
-    io::stdin().read_line(&mut buf).unwrap();
-    let name = buf.trim();
-
-    send_action(Action::Identify, Some(name.to_string()), writer).await;
-}
 
 pub(crate) async fn send_action(action: Action, data: Option<String>, writer: &mut OwnedWriteHalf) {
     // Send the player's action to the server
@@ -52,9 +41,8 @@ pub(crate) async fn connect_to_server() -> (BufReader<OwnedReadHalf>, OwnedWrite
     println!("Connected to server!");
 
     // Split the stream into reader and writer
-    let (reader, mut writer) = stream.into_split();
+    let (reader, writer) = stream.into_split();
     let reader = BufReader::new(reader);
-    send_name(&mut writer).await;
 
     (reader, writer)
 }

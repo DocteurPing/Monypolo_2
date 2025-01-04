@@ -1,8 +1,21 @@
+use crate::communication::MessageSender;
+use crate::game_state::GamesState;
+use crate::screens::GameStateEnum;
 use crate::tools::despawn_screen;
-use crate::GameState;
-use bevy::{app::AppExit, color::palettes::css::CRIMSON, prelude::*};
+use crate::ui::toast::{spawn_toast, ToastCount};
+use bevy::color::palettes::css::CRIMSON;
+use bevy::tasks::AsyncComputeTaskPool;
+use bevy::{app::AppExit, prelude::*};
+use bevy_simple_text_input::{
+    TextInput, TextInputPlugin, TextInputSubmitEvent, TextInputSystem, TextInputTextColor,
+    TextInputTextFont,
+};
+use shared::action::{Action, PlayerAction};
 
 const TEXT_COLOR: Color = Color::srgb(0.9, 0.9, 0.9);
+
+const BORDER_COLOR_ACTIVE: Color = Color::srgb(0.75, 0.52, 0.99);
+const BACKGROUND_COLOR: Color = Color::srgb(0.15, 0.15, 0.15);
 
 // This plugin manages the menu, with 5 different screens:
 // - a main menu with "New Game", "Settings", "Quit"
@@ -14,14 +27,16 @@ pub fn menu_plugin(app: &mut App) {
         // entering the `GameState::Menu` state.
         // Current screen in the menu is handled by an independent state from `GameState`
         .init_state::<MenuState>()
-        .add_systems(OnEnter(GameState::Menu), menu_setup)
+        .add_plugins(TextInputPlugin)
+        .add_systems(OnEnter(GameStateEnum::Menu), menu_setup)
         // Systems to handle the main menu screen
         .add_systems(OnEnter(MenuState::Main), main_menu_setup)
         .add_systems(OnExit(MenuState::Main), despawn_screen::<OnMainMenuScreen>)
+        .add_systems(Update, listener.after(TextInputSystem))
         // Common systems to all screens that handles buttons behavior
         .add_systems(
             Update,
-            (menu_action, button_system).run_if(in_state(GameState::Menu)),
+            (menu_action, button_system).run_if(in_state(GameStateEnum::Menu)),
         );
 }
 
@@ -133,6 +148,32 @@ fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                             ..default()
                         },
                     ));
+                    parent
+                        .spawn(Node {
+                            width: Val::Percent(100.0),
+                            height: Val::Percent(100.0),
+                            align_items: AlignItems::Center,
+                            justify_content: JustifyContent::Center,
+                            ..default()
+                        })
+                        .with_children(|parent| {
+                            parent.spawn((
+                                Node {
+                                    width: Val::Px(200.0),
+                                    border: UiRect::all(Val::Px(5.0)),
+                                    padding: UiRect::all(Val::Px(5.0)),
+                                    ..default()
+                                },
+                                BorderColor(BORDER_COLOR_ACTIVE),
+                                BackgroundColor(BACKGROUND_COLOR),
+                                TextInput,
+                                TextInputTextFont(TextFont {
+                                    font_size: 34.,
+                                    ..default()
+                                }),
+                                TextInputTextColor(TextColor(TEXT_COLOR)),
+                            ));
+                        });
 
                     // Display three buttons for each action available from the main menu:
                     // - new game
@@ -176,13 +217,16 @@ fn main_menu_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 #[allow(clippy::type_complexity)]
 fn menu_action(
+    mut commands: Commands,
     interaction_query: Query<
         (&Interaction, &MenuButtonAction),
         (Changed<Interaction>, With<Button>),
     >,
     mut app_exit_events: EventWriter<AppExit>,
     mut menu_state: ResMut<NextState<MenuState>>,
-    mut game_state: ResMut<NextState<GameState>>,
+    mut game_state_enum: ResMut<NextState<GameStateEnum>>,
+    state: ResMut<GamesState>,
+    toast_count: ResMut<ToastCount>,
 ) {
     for (interaction, menu_button_action) in &interaction_query {
         if *interaction == Interaction::Pressed {
@@ -191,10 +235,44 @@ fn menu_action(
                     app_exit_events.send(AppExit::Success);
                 }
                 MenuButtonAction::Play => {
-                    game_state.set(GameState::Game);
-                    menu_state.set(MenuState::Disabled);
+                    if state.id.is_nil() {
+                        spawn_toast(
+                            &mut commands,
+                            "Please enter a name".to_string(),
+                            3.0,
+                            toast_count,
+                        );
+                        break;
+                    } else {
+                        game_state_enum.set(GameStateEnum::Game);
+                        menu_state.set(MenuState::Disabled);
+                    }
                 }
             }
         }
+    }
+}
+
+fn listener(sender: Res<MessageSender>, mut events: EventReader<TextInputSubmitEvent>) {
+    for event in events.read() {
+        let value = event.value.clone();
+        if value.is_empty() {
+            return;
+        }
+        let sender = sender.clone();
+        let task_pool = AsyncComputeTaskPool::get();
+        task_pool
+            .spawn(async move {
+                sender
+                    .0
+                    .send(PlayerAction {
+                        action_type: Action::Identify,
+                        data: Some(value),
+                    })
+                    .await
+                    .unwrap();
+            })
+            .detach();
+        info!("{:?} submitted: {}", event.entity, event.value);
     }
 }

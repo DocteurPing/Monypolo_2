@@ -1,11 +1,12 @@
 use crate::communication::MessageSender;
 use crate::game_state::{GamesState, Player};
+use crate::screens::GameStateEnum;
 use crate::tools::despawn_screen;
 use crate::ui::buttons::button_system;
 use crate::ui::money::MoneyText;
 use crate::ui::name::{name_system, NameText};
 use crate::ui::{money, toast};
-use crate::{communication, helpers, GameState};
+use crate::{communication, helpers};
 use bevy::asset::Handle;
 use bevy::image::Image;
 use bevy::input::ButtonInput;
@@ -46,8 +47,8 @@ fn get_texture(asset_server: &Res<AssetServer>, i: usize) -> Handle<Image> {
 }
 
 pub fn game_plugin(app: &mut App) {
-    app.add_systems(OnEnter(GameState::Game), game_setup)
-        .add_systems(OnExit(GameState::Game), despawn_screen::<OnGameScreen>)
+    app.add_systems(OnEnter(GameStateEnum::Game), game_setup)
+        .add_systems(OnExit(GameStateEnum::Game), despawn_screen::<OnGameScreen>)
         .add_systems(Update, communication::receive_message)
         .add_systems(Update, button_system)
         .add_systems(Update, helpers::camera::movement)

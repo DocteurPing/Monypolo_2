@@ -36,7 +36,7 @@ pub(crate) struct GamesState {
 impl Default for GamesState {
     fn default() -> Self {
         GamesState {
-            id: Uuid::new_v4(),
+            id: Uuid::nil(),
             players: HashMap::new(),
             player_turn: Uuid::new_v4(),
             board: MAP1.clone(),

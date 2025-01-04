@@ -7,7 +7,7 @@ pub mod menu;
 
 // Enum that will be used as a global state for the game
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
-pub(crate) enum GameState {
+pub(crate) enum GameStateEnum {
     #[default]
     Menu,
     Game,

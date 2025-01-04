@@ -7,7 +7,7 @@ mod ui;
 
 use crate::communication::{setup_network, MessageReceiver, MessageSender};
 use crate::game_state::GamesState;
-use crate::screens::{add_camera, GameState};
+use crate::screens::{add_camera, GameStateEnum};
 use crate::ui::toast::ToastCount;
 use bevy::input::common_conditions::input_toggle_active;
 use bevy::prelude::*;
@@ -19,7 +19,7 @@ async fn main() {
     // Initialize Bevy app
     App::new()
         .add_plugins(DefaultPlugins) // Add default Bevy plugins
-        .init_state::<GameState>()
+        .init_state::<GameStateEnum>()
         .insert_resource(GamesState::default())
         .insert_resource(MessageReceiver(rx_server))
         .insert_resource(MessageSender(tx_client))

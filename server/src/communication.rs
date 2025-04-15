@@ -65,10 +65,7 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &Arc<ServerStat
 }
 
 pub(crate) async fn handle_message(message: &str, _state: &Arc<ServerState>, _uuid: Uuid) {
-    let action: PlayerAction = serde_json::from_str(message).unwrap();
-    match action.action_type {
-        _ => {}
-    }
+    let _action: PlayerAction = serde_json::from_str(message).unwrap();
 }
 
 pub(crate) async fn handle_connection(socket: tokio::net::TcpStream, state: Arc<ServerState>) {
@@ -95,9 +92,28 @@ pub(crate) async fn handle_connection(socket: tokio::net::TcpStream, state: Arc<
                 let mut waiting_room = state.waiting_room.lock().await;
                 if len == 0 {
                     println!("Player {} disconnected", player_id);
-                    println!("Players {:?}", waiting_room.players);
-                    waiting_room.players.retain(|p| p.id != player_id);
-                    println!("Player {} left waiting room. Total players: {}",player_id,waiting_room.players.len());
+                    if waiting_room.players.iter().any(|p| p.id == player_id) {
+                        waiting_room.players.retain(|player| player.id != player_id);
+                        println!("Player {} left waiting room. Total players: {}",player_id, waiting_room.players.len());
+                        println!("Players {:?}", waiting_room.players);
+                    } else {
+                        let mut games = state.active_games.lock().await;
+                        for (_, game) in games.iter_mut() {
+                            let is_player_turn = game.players[game.player_turn].id == player_id;
+                            game.players.retain(|player| player.id != player_id);
+                            println!("Player {} left the game. Total player in the game: {}", player_id, game.players.len());
+                            if is_player_turn && !game.players.is_empty() {
+                                game.advance_turn().await;
+                            }
+                        }
+                        games.retain(|_, game| {
+                            let retain_game = !game.players.is_empty();
+                            if !retain_game {
+                                println!("Game ended due to player leaving");
+                            }
+                            retain_game
+                        });
+                    }
                     break;
                 }
                 println!("Received message: {}", buf.trim());

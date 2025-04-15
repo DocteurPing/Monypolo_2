@@ -46,6 +46,7 @@ pub(crate) struct Game {
     pub(crate) board: Vec<shared::board::Tile>,
     pub(crate) current_turn: usize,
     pub(crate) player_turn: usize,
+    pub(crate) is_active: bool,
 }
 
 impl Game {
@@ -60,6 +61,7 @@ impl Game {
                 Some(winner.id.to_string()),
             )
             .await;
+            self.is_active = false;
             return;
         }
         self.current_turn += 1;
@@ -82,6 +84,7 @@ impl Game {
             board: MAP1.clone(),
             current_turn: 0,
             player_turn: 0,
+            is_active: true,
         }
     }
 }

@@ -107,7 +107,7 @@ pub(crate) async fn handle_connection(socket: tokio::net::TcpStream, state: Arc<
                             }
                         }
                         games.retain(|_, game| {
-                            let retain_game = !game.players.is_empty();
+                            let retain_game = !game.players.is_empty() && game.is_active;
                             if !retain_game {
                                 println!("Game ended due to player leaving");
                             }
@@ -143,7 +143,7 @@ async fn add_to_waiting_room(state: &Arc<ServerState>, player: Player) {
     );
 
     if waiting_room.players.len() == NUMBER_PLAYERS_PER_GAME {
-        // Start a new game when there are 4 players
+        // Start a new game when there are enough players
         tokio::spawn(start_new_game(Arc::clone(state)));
     }
 }

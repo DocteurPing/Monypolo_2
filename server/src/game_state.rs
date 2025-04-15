@@ -1,6 +1,7 @@
 use crate::communication::send_to_all_players;
 use crate::server_state::ServerState;
 use shared::action::PlayerIdentifyData;
+use shared::list_const::NUMBER_PLAYERS_PER_GAME;
 use shared::maps::map1::MAP1;
 use std::sync::Arc;
 use tokio::sync::mpsc;
@@ -89,11 +90,14 @@ pub(crate) async fn start_new_game(state: Arc<ServerState>) {
     let mut waiting_room = state.waiting_room.lock().await;
     let mut active_games = state.active_games.lock().await;
 
-    if waiting_room.players.len() < 2 {
+    if waiting_room.players.len() < NUMBER_PLAYERS_PER_GAME {
         return;
     }
 
-    let players = waiting_room.players.drain(0..2).collect::<Vec<_>>();
+    let players = waiting_room
+        .players
+        .drain(0..NUMBER_PLAYERS_PER_GAME)
+        .collect::<Vec<_>>();
 
     let mut game = Game::default();
     let game_id = game.id;

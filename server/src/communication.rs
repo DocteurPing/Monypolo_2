@@ -3,6 +3,7 @@ use crate::game_state::{start_new_game, Player};
 use crate::server_state::ServerState;
 use shared::action::{Action, PlayerAction};
 use shared::board::Tile::Property;
+use shared::list_const::NUMBER_PLAYERS_PER_GAME;
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::sync::mpsc;
@@ -125,7 +126,7 @@ async fn add_to_waiting_room(state: &Arc<ServerState>, player: Player) {
         waiting_room.players.len()
     );
 
-    if waiting_room.players.len() == 2 {
+    if waiting_room.players.len() == NUMBER_PLAYERS_PER_GAME {
         // Start a new game when there are 4 players
         tokio::spawn(start_new_game(Arc::clone(state)));
     }

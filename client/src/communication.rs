@@ -18,7 +18,7 @@ pub(crate) struct MessageSender(pub Sender<PlayerAction>);
 pub(crate) async fn send_action(action: Action, data: Option<String>, writer: &mut OwnedWriteHalf) {
     // Send the player's action to the server
     // Create an action to send to the server
-    println!("Sending action: {:?}", action);
+    log::debug!("Sending action: {:?}", action);
     let action = PlayerAction {
         action_type: action,
         data, // Add specific data if required
@@ -29,7 +29,7 @@ pub(crate) async fn send_action(action: Action, data: Option<String>, writer: &m
         .write_all((serialized_action + "\n").as_bytes())
         .await
     {
-        eprintln!("Error sending action: {:?}", e);
+        log::error!("Error sending action: {:?}", e);
     }
 }
 
@@ -38,7 +38,7 @@ pub(crate) async fn connect_to_server() -> (BufReader<OwnedReadHalf>, OwnedWrite
     let stream = TcpStream::connect("127.0.0.1:8080").await.unwrap();
 
     #[cfg(debug_assertions)]
-    println!("Connected to server!");
+    log::debug!("Connected to server!");
 
     // Split the stream into reader and writer
     let (reader, writer) = stream.into_split();
@@ -60,19 +60,19 @@ async fn handle_server_communication(
             result = reader.read_line(&mut buf) => {
                 match result {
                     Ok(0) => {
-                        eprintln!("Server closed connection");
+                        log::error!("Server closed connection");
                         return Err("Server closed connection".into());
                     }
                     Ok(_) => {
                         #[cfg(debug_assertions)]
-                        println!("Server: {}", buf.trim());
+                        log::debug!("Server: {}", buf.trim());
                         tx_server.send(buf.clone()).await.unwrap();
                         if buf.trim() == "Goodbye!" {
                             return Ok(());
                         }
                     }
                     Err(e) => {
-                        eprintln!("Error reading from server: {:?}", e);
+                        log::error!("Error reading from server: {:?}", e);
                         return Err(e.into());
                     }
                 }
@@ -82,11 +82,11 @@ async fn handle_server_communication(
             action = rx_client.recv() => {
                 match action {
                     Ok(action) => {
-                        println!("Sending message: {:?}", action.action_type);
+                        log::debug!("Sending message: {:?}", action.action_type);
                         send_action(action.action_type, action.data, &mut writer).await;
                     }
                     Err(e) => {
-                        println!("No message to send");
+                        log::debug!("No message to send");
                         return Err(e.into());
                     }
                 }
@@ -104,7 +104,7 @@ pub(crate) fn receive_message(
     toast_count: ResMut<ToastCount>,
 ) {
     if let Ok(message) = receiver.0.try_recv() {
-        println!("Processing message: {}", message.trim());
+        log::debug!("Processing message: {}", message.trim());
         // Update game state based on the received message
         // Example: Parse and handle the message
         handle_message_in_game(
@@ -126,7 +126,7 @@ pub(crate) async fn setup_network() -> (Receiver<String>, Sender<PlayerAction>) 
     tokio::spawn(async move {
         let (reader, writer) = connect_to_server().await;
         if let Err(e) = handle_server_communication(tx_server, rx_client, reader, writer).await {
-            eprintln!("Error in server communication: {:?}", e);
+            log::error!("Error in server communication: {:?}", e);
         }
     });
     (rx_server, tx_client)

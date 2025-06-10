@@ -140,7 +140,7 @@ pub(crate) fn spawn_players(
     state: &mut GamesState,
 ) {
     for (i, data) in players_data.iter().enumerate() {
-        println!("Spawning player {}", i);
+        log::debug!("Spawning player {}", i);
         let player_texture = asset_server.load(SPRITES_PATH[i]);
         let pos = convert_pos_to_coords(0);
         let player_entity = commands
@@ -177,7 +177,7 @@ pub(crate) fn roll_dice(
         && games_state.player_turn == games_state.id
         && games_state.can_roll
     {
-        println!("Rolling dice");
+        log::debug!("Rolling dice");
         // Spawn a new async task to send the action
         let sender = sender.clone();
         let task_pool = AsyncComputeTaskPool::get();

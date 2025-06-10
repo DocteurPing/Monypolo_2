@@ -9,17 +9,17 @@ use shared::board::Tile::*;
 use uuid::Uuid;
 
 pub(crate) async fn roll_dice(game: &mut Game, uuid: Uuid) {
-    println!("Player {} rolled the dice", uuid);
+    log::debug!("Player {} rolled the dice", uuid);
     // Generate random number between 2 and 12
     let roll1 = rand::random::<u8>() % 6 + 1;
     let roll2 = rand::random::<u8>() % 6 + 1;
     let roll = roll1 + roll2;
     if game.players[game.player_turn].is_in_jail {
-        println!("Player {} is in jail", uuid);
+        log::debug!("Player {} is in jail", uuid);
         if roll1 == roll2 {
             game.players[game.player_turn].is_in_jail = false;
             game.players[game.player_turn].jail_turns = 0;
-            println!("Player {} rolled doubles and is out of jail", uuid);
+            log::debug!("Player {} rolled doubles and is out of jail", uuid);
             send_to_all_players(
                 &game.players,
                 Action::FreeFromJail,
@@ -30,9 +30,9 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: Uuid) {
             game.players[game.player_turn].jail_turns -= 1;
             if game.players[game.player_turn].jail_turns == 0 {
                 game.players[game.player_turn].is_in_jail = false;
-                println!("Player {} is out of jail", uuid);
+                log::debug!("Player {} is out of jail", uuid);
             } else {
-                println!("Player {} is still in jail", uuid);
+                log::debug!("Player {} is still in jail", uuid);
             }
             game.advance_turn().await;
             return;
@@ -40,11 +40,12 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: Uuid) {
     }
     game.players[game.player_turn].position =
         (game.players[game.player_turn].position + roll as usize) % game.board.len();
-    println!(
+    log::debug!(
         "Player {} moved to position {}",
-        uuid, game.players[game.player_turn].position
+        uuid,
+        game.players[game.player_turn].position
     );
-    println!(
+    log::debug!(
         "Tile: {:?}",
         game.board[game.players[game.player_turn].position]
     );
@@ -124,7 +125,7 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: Uuid) {
         }
         Tax { price } | LuxuryTax { price } => {
             if game.players[game.player_turn].money < price {
-                println!("Player {} does not have enough money to pay tax", uuid);
+                log::debug!("Player {} does not have enough money to pay tax", uuid);
                 game.players[game.player_turn].is_bankrupt = true;
                 send_to_all_players(
                     &game.players,
@@ -185,7 +186,7 @@ async fn pay_rent_or_buy(
 ) {
     if owner.is_some() && owner.unwrap() != *uuid {
         if game.players[game.player_turn].money < rent_price {
-            println!("Player {} does not have enough money to pay rent", uuid);
+            log::debug!("Player {} does not have enough money to pay rent", uuid);
             game.players[game.player_turn].is_bankrupt = true;
             send_to_all_players(
                 &game.players,
@@ -203,9 +204,11 @@ async fn pay_rent_or_buy(
             .find(|player| player.id == owner.unwrap())
             .unwrap();
         owner_player.money += rent_price;
-        println!(
+        log::debug!(
             "Player {} paid rent of {} to Player {}",
-            uuid, rent_price, owner_player.id
+            uuid,
+            rent_price,
+            owner_player.id
         );
         let pay_rent_data = PayRentData {
             rent: rent_price,
@@ -249,9 +252,10 @@ pub(crate) async fn buy_property(uuid: Uuid, game: &mut Game) {
             if player.money >= costs[0] {
                 player.money -= costs[0];
                 *owner = Some(uuid);
-                println!(
+                log::debug!(
                     "Player {} bought property money of the player {}",
-                    uuid, player.money
+                    uuid,
+                    player.money
                 );
                 send_to_all_players(
                     &game.players,
@@ -266,7 +270,7 @@ pub(crate) async fn buy_property(uuid: Uuid, game: &mut Game) {
                 )
                 .await;
             } else {
-                println!("Player {} does not have enough money to buy property", uuid);
+                log::debug!("Player {} does not have enough money to buy property", uuid);
             }
         }
         Railroad {
@@ -281,9 +285,10 @@ pub(crate) async fn buy_property(uuid: Uuid, game: &mut Game) {
             if player.money >= *cost {
                 player.money -= *cost;
                 *owner = Some(uuid);
-                println!(
+                log::debug!(
                     "Player {} bought property money of the player {}",
-                    uuid, player.money
+                    uuid,
+                    player.money
                 );
                 send_to_all_players(
                     &game.players,
@@ -298,7 +303,7 @@ pub(crate) async fn buy_property(uuid: Uuid, game: &mut Game) {
                 )
                 .await;
             } else {
-                println!("Player {} does not have enough money to buy property", uuid);
+                log::debug!("Player {} does not have enough money to buy property", uuid);
             }
         }
         _ => {}

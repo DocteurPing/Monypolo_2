@@ -230,7 +230,8 @@ fn ask_buy_property(state: &mut GamesState, commands: &mut Commands, action: Pla
     let buy_property_data: BuyPropertyData = serde_json::from_str(&action.data.unwrap()).unwrap();
     log::debug!(
         "Player {} asked to buy property {}",
-        buy_property_data.player, buy_property_data.position
+        buy_property_data.player,
+        buy_property_data.position
     );
     if buy_property_data.player == state.id {
         spawn_buy_buttons(commands, state);
@@ -249,7 +250,9 @@ fn pay_rent(
     state.players.get_mut(&data.owner).unwrap().money += rent_price;
     log::debug!(
         "Player {} paid rent of {} to Player {}",
-        data.player, rent_price, data.owner
+        data.player,
+        rent_price,
+        data.owner
     );
     spawn_toast(
         commands,
@@ -348,7 +351,8 @@ fn buy_property(
     *tile_owner = Some(buy_property_data.player);
     log::debug!(
         "Player {} bought property {}",
-        buy_property_data.player, buy_property_data.position
+        buy_property_data.player,
+        buy_property_data.position
     );
     log::debug!("Property is now {:?}", state.board[player.position]);
     spawn_toast(

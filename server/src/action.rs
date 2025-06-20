@@ -40,15 +40,9 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: Uuid) {
     }
     game.players[game.player_turn].position =
         (game.players[game.player_turn].position + roll as usize) % game.board.len();
-    log::debug!(
-        "Player {} moved to position {}",
-        uuid,
-        game.players[game.player_turn].position
-    );
-    log::debug!(
-        "Tile: {:?}",
-        game.board[game.players[game.player_turn].position]
-    );
+    let current_position = game.players[game.player_turn].position;
+    log::debug!("Player {} moved to position {}", uuid, current_position);
+    log::debug!("Tile: {:?}", game.board[current_position]);
     send_to_all_players(
         &game.players,
         Action::Roll,
@@ -64,10 +58,10 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: Uuid) {
     send_to_all_players(
         &game.players,
         Action::Move,
-        Some(game.players[game.player_turn].position.to_string()),
+        Some(current_position.to_string()),
     )
     .await;
-    match game.board[game.players[game.player_turn].position].clone() {
+    match game.board[current_position].clone() {
         Property {
             rents,
             level,

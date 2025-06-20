@@ -39,7 +39,7 @@ pub(crate) struct WaitingRoom {
     pub(crate) players: Vec<Player>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Game {
     pub(crate) id: Uuid,
     pub(crate) players: Vec<Player>,

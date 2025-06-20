@@ -60,6 +60,7 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &Arc<ServerStat
                 }
                 _ => {}
             }
+            break;
         }
     }
 }

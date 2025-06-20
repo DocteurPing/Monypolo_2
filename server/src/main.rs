@@ -2,6 +2,7 @@ mod action;
 mod communication;
 mod game_state;
 mod server_state;
+mod test;
 
 use crate::communication::handle_connection;
 use crate::server_state::ServerState;

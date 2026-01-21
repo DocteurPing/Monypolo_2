@@ -34,7 +34,7 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &Arc<ServerStat
         if game.players[game.player_turn].id == uuid {
             match action.action_type {
                 Action::Roll => {
-                    roll_dice(game, uuid).await;
+                    roll_dice(game, &uuid).await;
                 }
                 Action::BuyProperty => {
                     buy_property(uuid, game).await;

@@ -8,7 +8,7 @@ use shared::action::{
 use shared::board::Tile::*;
 use uuid::Uuid;
 
-pub(crate) async fn roll_dice(game: &mut Game, uuid: Uuid) {
+pub(crate) async fn roll_dice(game: &mut Game, uuid: &Uuid) {
     log::debug!("Player {} rolled the dice", uuid);
     // Generate random number between 2 and 12
     let roll1 = rand::random::<u8>() % 6 + 1;

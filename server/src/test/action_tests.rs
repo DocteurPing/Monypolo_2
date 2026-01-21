@@ -25,7 +25,7 @@ async fn test_roll_dice() {
     let initial_position = game.players[0].position;
 
     // Execute roll dice
-    roll_dice(&mut game, player_id).await;
+    roll_dice(&mut game, &player_id).await;
 
     // Player should have moved (position changed)
     assert_ne!(game.players[0].position, initial_position);
@@ -56,7 +56,7 @@ async fn test_roll_dice_in_jail() {
     }];
 
     // Execute roll dice
-    roll_dice(&mut game, player_id).await;
+    roll_dice(&mut game, &player_id).await;
 
     // Player should still be in jail
     assert!(game.players[0].is_in_jail);

@@ -8,7 +8,7 @@ use shared::action::{
 use shared::board::Tile::*;
 use uuid::Uuid;
 
-pub(crate) async fn roll_dice(game: &mut Game, uuid: &Uuid) {
+pub(crate) async fn roll_dice(game: &mut Game, uuid: &Uuid) -> (u8, u8) {
     log::debug!("Player {} rolled the dice", uuid);
     // Generate random number between 2 and 12
     let roll1 = rand::random::<u8>() % 6 + 1;
@@ -35,7 +35,7 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: &Uuid) {
                 log::debug!("Player {} is still in jail", uuid);
             }
             game.advance_turn().await;
-            return;
+            return (roll1, roll2);
         }
     }
     game.players[game.player_turn].position =
@@ -69,15 +69,15 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: &Uuid) {
             costs,
             ..
         } => {
-            pay_rent_or_buy(game, &uuid, rents[level.clone() as usize], &owner, costs[0]).await;
-            return;
+            pay_rent_or_buy(game, uuid, rents[level.clone() as usize], &owner, costs[0]).await;
+            return (roll1, roll2);
         }
         Railroad {
             owner, rents, cost, ..
         } => {
             let rent = get_rent_railroad(rents, &owner, game);
-            pay_rent_or_buy(game, &uuid, rent, &owner, cost).await;
-            return;
+            pay_rent_or_buy(game, uuid, rent, &owner, cost).await;
+            return (roll1, roll2);
         }
         Chance { .. } => {}
         Go { amount } => {
@@ -114,8 +114,8 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: &Uuid) {
         FreeParking => {}
         Utility { owner, cost, .. } => {
             let rent = calculate_utility_cost(roll, &owner, game);
-            pay_rent_or_buy(game, &uuid, rent, &owner, cost).await;
-            return;
+            pay_rent_or_buy(game, uuid, rent, &owner, cost).await;
+            return (roll1, roll2);
         }
         Tax { price } | LuxuryTax { price } => {
             if game.players[game.player_turn].money < price {
@@ -128,7 +128,7 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: &Uuid) {
                 )
                 .await;
                 game.advance_turn().await;
-                return;
+                return (roll1, roll2);
             }
             game.players[game.player_turn].money -= price;
             send_to_all_players(
@@ -146,6 +146,7 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: &Uuid) {
         }
     }
     game.advance_turn().await;
+    (roll1, roll2)
 }
 
 fn calculate_utility_cost(dice_roll: u8, owner: &Option<Uuid>, game: &mut Game) -> u32 {
@@ -178,7 +179,7 @@ async fn pay_rent_or_buy(
     owner: &Option<Uuid>,
     cost: u32,
 ) {
-    if owner.is_some() && owner.unwrap() != *uuid {
+    if owner.is_some() && &owner.unwrap() != uuid {
         if game.players[game.player_turn].money < rent_price {
             log::debug!("Player {} does not have enough money to pay rent", uuid);
             game.players[game.player_turn].is_bankrupt = true;

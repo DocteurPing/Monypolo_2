@@ -56,13 +56,17 @@ async fn test_roll_dice_in_jail() {
     }];
 
     // Execute roll dice
-    roll_dice(&mut game, &player_id).await;
+    let (roll1, roll2) = roll_dice(&mut game, &player_id).await;
 
-    // Player should still be in jail
-    assert!(game.players[0].is_in_jail);
+    if roll1 == roll2 {
+        assert!(!game.players[0].is_in_jail);
+    } else {
+        // Player should still be in jail
+        assert!(game.players[0].is_in_jail);
 
-    // Jail turns should be decremented
-    assert_eq!(game.players[0].jail_turns, 2);
+        // Jail turns should be decremented
+        assert_eq!(game.players[0].jail_turns, 2);
+    }
 
     // Messages should be received
     let _msg = rx.recv().await.unwrap();

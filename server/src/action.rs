@@ -163,7 +163,7 @@ fn calculate_utility_cost(dice_roll: u8, owner: Option<Uuid>, game: &mut Game) -
     0
 }
 
-fn get_rent_railroad(rent: &[u32], owner: Option<Uuid>, game: &mut Game) -> u32 {
+fn get_rent_railroad(rent: &[u32], owner: Option<Uuid>, game: &Game) -> u32 {
     if let Some(owner_id) = owner {
         return rent[game
             .board
@@ -300,7 +300,7 @@ pub(crate) async fn buy_property(uuid: Uuid, game: &mut Game) {
                 )
                 .await;
             } else {
-                log::debug!("Player {} does not have enough money to buy property", uuid);
+                log::debug!("Player {uuid} does not have enough money to buy property");
             }
         }
         _ => {}

@@ -6,6 +6,7 @@ use shared::board::Tile::Property;
 use shared::list_const::NUMBER_PLAYERS_PER_GAME;
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
@@ -53,8 +54,8 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &Arc<ServerStat
                 Action::BuyAll => {
                     // Buy all properties for debug purpose only
                     log::debug!("Player {uuid} bought all properties");
-                    for tile in game.board.iter_mut() {
-                        if let Property { ref mut owner, .. } = tile {
+                    for tile in &mut game.board {
+                        if let Property { owner, .. } = tile {
                             *owner = Some(uuid);
                         }
                     }
@@ -70,7 +71,7 @@ pub(crate) async fn handle_message(message: &str, _state: &Arc<ServerState>, _uu
     let _action: PlayerAction = serde_json::from_str(message).unwrap();
 }
 
-pub(crate) async fn handle_connection(socket: tokio::net::TcpStream, state: Arc<ServerState>) {
+pub(crate) async fn handle_connection(socket: TcpStream, state: Arc<ServerState>) {
     let (reader, mut writer) = socket.into_split();
     let mut reader = BufReader::new(reader);
     let mut buf = String::new();

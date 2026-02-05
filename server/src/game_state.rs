@@ -1,5 +1,6 @@
 use crate::communication::send_to_all_players;
 use crate::server_state::ServerState;
+use shared::action::Action;
 use shared::action::PlayerIdentifyData;
 use shared::list_const::NUMBER_PLAYERS_PER_GAME;
 use shared::maps::map1::MAP1;
@@ -55,12 +56,7 @@ impl Game {
         let number_players_left = self.players.iter().filter(|p| !p.is_bankrupt).count();
         if number_players_left == 1 {
             let winner = self.players.iter().find(|p| !p.is_bankrupt).unwrap();
-            send_to_all_players(
-                &self.players,
-                shared::action::Action::GameOver,
-                Some(winner.id.to_string()),
-            )
-            .await;
+            send_to_all_players(&self.players, Action::GameOver, Some(winner.id.to_string())).await;
             self.is_active = false;
             return;
         }
@@ -71,14 +67,14 @@ impl Game {
         }
         send_to_all_players(
             &self.players,
-            shared::action::Action::PlayerTurn,
+            Action::PlayerTurn,
             Some(self.players[self.player_turn].id.to_string()),
         )
         .await;
     }
 
     pub(crate) fn default() -> Self {
-        Game {
+        Self {
             id: Uuid::new_v4(),
             players: vec![],
             board: MAP1.clone(),
@@ -120,13 +116,13 @@ pub(crate) async fn start_new_game(state: Arc<ServerState>) {
         .collect();
     send_to_all_players(
         &players,
-        shared::action::Action::GameStart,
+        Action::GameStart,
         Some(serde_json::to_string(&players_data).unwrap()),
     )
     .await;
     send_to_all_players(
         &players,
-        shared::action::Action::PlayerTurn,
+        Action::PlayerTurn,
         Some(players[current_game.player_turn].id.to_string()),
     )
     .await;

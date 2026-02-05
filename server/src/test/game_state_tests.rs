@@ -15,7 +15,7 @@ async fn test_advance_turn() {
     game.players = vec![
         Player {
             id: Uuid::new_v4(),
-            name: "Player1".to_string(),
+            name: "Player1".to_owned(),
             tx: tx1,
             money: 1500,
             position: 0,
@@ -25,7 +25,7 @@ async fn test_advance_turn() {
         },
         Player {
             id: Uuid::new_v4(),
-            name: "Player2".to_string(),
+            name: "Player2".to_owned(),
             tx: tx2,
             money: 1500,
             position: 0,
@@ -110,7 +110,7 @@ async fn test_start_new_game() {
         players: vec![
             Player {
                 id: Uuid::new_v4(),
-                name: "WaitingPlayer1".to_string(),
+                name: "WaitingPlayer1".to_owned(),
                 tx: tx1,
                 money: 1500,
                 position: 0,
@@ -120,7 +120,7 @@ async fn test_start_new_game() {
             },
             Player {
                 id: Uuid::new_v4(),
-                name: "WaitingPlayer2".to_string(),
+                name: "WaitingPlayer2".to_owned(),
                 tx: tx2,
                 money: 1500,
                 position: 0,

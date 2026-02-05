@@ -29,7 +29,7 @@ async fn test_server_state_concurrent_access() {
         // Perform some modification
         waiting_room.players.push(Player {
             id: Uuid::new_v4(),
-            name: "ConcurrentPlayer".to_string(),
+            name: "ConcurrentPlayer".to_owned(),
             tx: mpsc::channel(1).0,
             money: 1500,
             position: 0,

@@ -23,7 +23,8 @@ pub(crate) async fn send_message(player: &Player, action: Action, data: Option<S
         action_type: action,
         data, // Add specific data if required
     };
-    let serialized_action = serde_json::to_string(&action).unwrap() + "\n";
+    let mut serialized_action = serde_json::to_string(&action).unwrap();
+    serialized_action.push('\n');
     let _ = player.tx.send(serialized_action).await;
 }
 

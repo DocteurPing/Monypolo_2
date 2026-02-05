@@ -34,7 +34,8 @@ async fn test_send_message() {
         action_type: Action::Roll,
         data: Some("test_data".to_owned()),
     };
-    let expected_msg = serde_json::to_string(&expected_action).unwrap() + "\n";
+    let mut expected_msg = serde_json::to_string(&expected_action).unwrap();
+    expected_msg.push('\n');
     assert_eq!(received_msg, expected_msg);
 }
 
@@ -75,7 +76,8 @@ async fn test_send_to_all_players() {
         action_type: Action::GameStart,
         data: Some("game_started".to_owned()),
     };
-    let expected_msg = serde_json::to_string(&expected_action).unwrap() + "\n";
+    let mut expected_msg = serde_json::to_string(&expected_action).unwrap();
+    expected_msg.push('\n');
 
     assert_eq!(rx1.recv().await.unwrap(), expected_msg);
     assert_eq!(rx2.recv().await.unwrap(), expected_msg);

@@ -107,7 +107,7 @@ pub(crate) async fn start_new_game(state: Arc<ServerState>) {
     game.players = players.clone();
 
     active_games.insert(game_id, game);
-    log::debug!("Started a new game with ID: {}", game_id);
+    log::debug!("Started a new game with ID: {game_id}");
 
     let current_game = active_games.get_mut(&game_id).unwrap();
     current_game.player_turn = rand::random::<u8>() as usize % (players.len() - 1);

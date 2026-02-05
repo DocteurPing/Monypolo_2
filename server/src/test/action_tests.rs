@@ -100,8 +100,8 @@ async fn test_buy_property() {
     assert!(game.players[0].money < initial_money);
 
     // Property should be owned by player
-    if let shared::board::Tile::Property { ref owner, .. } = game.board[1] {
-        assert_eq!(*owner, Some(player_id));
+    if let shared::board::Tile::Property { owner, .. } = game.board[1] {
+        assert_eq!(owner, Some(player_id));
     } else {
         panic!("Expected property at position 1");
     }

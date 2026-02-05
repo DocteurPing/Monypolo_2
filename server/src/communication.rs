@@ -40,7 +40,7 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &Arc<ServerStat
                     buy_property(uuid, game).await;
                 }
                 Action::SkipBuyProperty => {
-                    log::debug!("Player {} skipped buying property", uuid);
+                    log::debug!("Player {uuid} skipped buying property");
                     send_to_all_players(
                         &game.players,
                         Action::SkipBuyProperty,
@@ -51,7 +51,7 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &Arc<ServerStat
                 }
                 Action::BuyAll => {
                     // Buy all properties for debug purpose only
-                    log::debug!("Player {} bought all properties", uuid);
+                    log::debug!("Player {uuid} bought all properties");
                     for tile in game.board.iter_mut() {
                         if let Property { ref mut owner, .. } = tile {
                             *owner = Some(uuid);
@@ -92,7 +92,7 @@ pub(crate) async fn handle_connection(socket: tokio::net::TcpStream, state: Arc<
             Ok(len) = reader.read_line(&mut buf) => {
                 let mut waiting_room = state.waiting_room.lock().await;
                 if len == 0 {
-                    log::debug!("Player {} disconnected", player_id);
+                    log::debug!("Player {player_id} disconnected");
                     if waiting_room.players.iter().any(|p| p.id == player_id) {
                         waiting_room.players.retain(|player| player.id != player_id);
                         log::debug!("Player {} left waiting room. Total players: {}",player_id, waiting_room.players.len());
@@ -102,7 +102,7 @@ pub(crate) async fn handle_connection(socket: tokio::net::TcpStream, state: Arc<
                         for (_, game) in games.iter_mut() {
                             let is_player_turn = game.players[game.player_turn].id == player_id;
                             game.players.retain(|player| player.id != player_id);
-                            log::debug!("Player {} left the game. Total player in the game: {}", player_id, game.players.len());
+                            log::debug!("Player {player_id} left the game. Total player in the game: {}", game.players.len());
                             if is_player_turn && !game.players.is_empty() {
                                 game.advance_turn().await;
                             }

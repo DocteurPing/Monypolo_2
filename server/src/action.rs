@@ -5,21 +5,23 @@ use shared::action::Action::PayRent;
 use shared::action::{
     Action, BuyPropertyData, DiceRollData, PayRentData, PlayerGoTileData, PlayerPayTaxData,
 };
-use shared::board::Tile::*;
+use shared::board::Tile::{
+    Chance, FreeParking, Go, GoToJail, Jail, LuxuryTax, Property, Railroad, Tax, Utility,
+};
 use uuid::Uuid;
 
 pub(crate) async fn roll_dice(game: &mut Game, uuid: &Uuid) -> (u8, u8) {
-    log::debug!("Player {} rolled the dice", uuid);
+    log::debug!("Player {uuid} rolled the dice");
     // Generate random number between 2 and 12
     let roll1 = rand::random::<u8>() % 6 + 1;
     let roll2 = rand::random::<u8>() % 6 + 1;
     let roll = roll1 + roll2;
     if game.players[game.player_turn].is_in_jail {
-        log::debug!("Player {} is in jail", uuid);
+        log::debug!("Player {uuid} is in jail");
         if roll1 == roll2 {
             game.players[game.player_turn].is_in_jail = false;
             game.players[game.player_turn].jail_turns = 0;
-            log::debug!("Player {} rolled doubles and is out of jail", uuid);
+            log::debug!("Player {uuid} rolled doubles and is out of jail");
             send_to_all_players(
                 &game.players,
                 Action::FreeFromJail,
@@ -30,9 +32,9 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: &Uuid) -> (u8, u8) {
             game.players[game.player_turn].jail_turns -= 1;
             if game.players[game.player_turn].jail_turns == 0 {
                 game.players[game.player_turn].is_in_jail = false;
-                log::debug!("Player {} is out of jail", uuid);
+                log::debug!("Player {uuid} is out of jail");
             } else {
-                log::debug!("Player {} is still in jail", uuid);
+                log::debug!("Player {uuid} is still in jail");
             }
             game.advance_turn().await;
             return (roll1, roll2);
@@ -41,7 +43,7 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: &Uuid) -> (u8, u8) {
     game.players[game.player_turn].position =
         (game.players[game.player_turn].position + roll as usize) % game.board.len();
     let current_position = game.players[game.player_turn].position;
-    log::debug!("Player {} moved to position {}", uuid, current_position);
+    log::debug!("Player {uuid} moved to position {current_position}");
     log::debug!("Tile: {:?}", game.board[current_position]);
     send_to_all_players(
         &game.players,
@@ -69,14 +71,14 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: &Uuid) -> (u8, u8) {
             costs,
             ..
         } => {
-            pay_rent_or_buy(game, uuid, rents[level.clone() as usize], &owner, costs[0]).await;
+            pay_rent_or_buy(game, uuid, rents[level.clone() as usize], owner, costs[0]).await;
             return (roll1, roll2);
         }
         Railroad {
             owner, rents, cost, ..
         } => {
-            let rent = get_rent_railroad(rents, &owner, game);
-            pay_rent_or_buy(game, uuid, rent, &owner, cost).await;
+            let rent = get_rent_railroad(&rents, owner, game);
+            pay_rent_or_buy(game, uuid, rent, owner, cost).await;
             return (roll1, roll2);
         }
         Chance { .. } => {}
@@ -113,13 +115,13 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: &Uuid) -> (u8, u8) {
         }
         FreeParking => {}
         Utility { owner, cost, .. } => {
-            let rent = calculate_utility_cost(roll, &owner, game);
-            pay_rent_or_buy(game, uuid, rent, &owner, cost).await;
+            let rent = calculate_utility_cost(roll, owner, game);
+            pay_rent_or_buy(game, uuid, rent, owner, cost).await;
             return (roll1, roll2);
         }
         Tax { price } | LuxuryTax { price } => {
             if game.players[game.player_turn].money < price {
-                log::debug!("Player {} does not have enough money to pay tax", uuid);
+                log::debug!("Player {uuid} does not have enough money to pay tax");
                 game.players[game.player_turn].is_bankrupt = true;
                 send_to_all_players(
                     &game.players,
@@ -149,24 +151,24 @@ pub(crate) async fn roll_dice(game: &mut Game, uuid: &Uuid) -> (u8, u8) {
     (roll1, roll2)
 }
 
-fn calculate_utility_cost(dice_roll: u8, owner: &Option<Uuid>, game: &mut Game) -> u32 {
+fn calculate_utility_cost(dice_roll: u8, owner: Option<Uuid>, game: &mut Game) -> u32 {
     if let Some(owner) = owner {
-        let number_utilities = game.board.iter().filter(|tile| matches!(tile, Utility { owner: Some(tile_owner), .. } if tile_owner == owner)).count() as u32;
+        let number_utilities = game.board.iter().filter(|tile| matches!(tile, Utility { owner: Some(tile_owner), .. } if *tile_owner == owner)).count() as u32;
         return match number_utilities {
-            1 => 4 * dice_roll as u32,
-            2 => 10 * dice_roll as u32,
+            1 => 4 * u32::from(dice_roll),
+            2 => 10 * u32::from(dice_roll),
             _ => 0,
         };
     }
     0
 }
 
-fn get_rent_railroad(rent: Vec<u32>, owner: &Option<Uuid>, game: &mut Game) -> u32 {
+fn get_rent_railroad(rent: &[u32], owner: Option<Uuid>, game: &mut Game) -> u32 {
     if let Some(owner_id) = owner {
         return rent[game
             .board
             .iter()
-            .filter(|tile| matches!(tile, Railroad { owner: Some(tile_owner), .. } if tile_owner == owner_id))
+            .filter(|tile| matches!(tile, Railroad { owner: Some(tile_owner), .. } if *tile_owner == owner_id))
             .count()];
     }
     0
@@ -176,12 +178,12 @@ async fn pay_rent_or_buy(
     game: &mut Game,
     uuid: &Uuid,
     rent_price: u32,
-    owner: &Option<Uuid>,
+    owner: Option<Uuid>,
     cost: u32,
 ) {
     if owner.is_some() && &owner.unwrap() != uuid {
         if game.players[game.player_turn].money < rent_price {
-            log::debug!("Player {} does not have enough money to pay rent", uuid);
+            log::debug!("Player {uuid} does not have enough money to pay rent");
             game.players[game.player_turn].is_bankrupt = true;
             send_to_all_players(
                 &game.players,

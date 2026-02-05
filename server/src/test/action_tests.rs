@@ -1,10 +1,11 @@
 use crate::action::{buy_property, roll_dice};
 use crate::game_state::{Game, Player};
+use shared::board::Tile;
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
 #[tokio::test]
-async fn test_roll_dice() {
+async fn roll_dice_works() {
     // Create a test game
     let mut game = Game::default();
     let player_id = Uuid::new_v4();
@@ -38,7 +39,7 @@ async fn test_roll_dice() {
 }
 
 #[tokio::test]
-async fn test_roll_dice_in_jail() {
+async fn roll_dice_in_jail() {
     // Create a test game with player in jail
     let mut game = Game::default();
     let player_id = Uuid::new_v4();
@@ -73,7 +74,7 @@ async fn test_roll_dice_in_jail() {
 }
 
 #[tokio::test]
-async fn test_buy_property() {
+async fn buy_property_works() {
     // Create a test game with a player in position to buy property
     let mut game = Game::default();
     let player_id = Uuid::new_v4();
@@ -99,11 +100,12 @@ async fn test_buy_property() {
     // Player should have less money now
     assert!(game.players[0].money < initial_money);
 
+    let tile = game.board.get(1);
+    assert!(tile.is_some());
+
     // Property should be owned by player
-    if let shared::board::Tile::Property { owner, .. } = game.board[1] {
+    if let Some(&Tile::Property { owner, .. }) = tile {
         assert_eq!(owner, Some(player_id));
-    } else {
-        panic!("Expected property at position 1");
     }
 
     // Player should receive notification

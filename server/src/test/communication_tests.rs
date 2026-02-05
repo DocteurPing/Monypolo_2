@@ -1,6 +1,6 @@
-use std::sync::Arc;
-
 use shared::action::{Action, PlayerAction};
+use std::collections::HashMap;
+use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 use uuid::Uuid;
 
@@ -11,7 +11,7 @@ use crate::{
 };
 
 #[tokio::test]
-async fn test_send_message() {
+async fn send_message_works() {
     // Create a mock player with a channel
     let (tx, mut rx) = mpsc::channel(32);
     let player = Player {
@@ -40,7 +40,7 @@ async fn test_send_message() {
 }
 
 #[tokio::test]
-async fn test_send_to_all_players() {
+async fn send_to_all_players_works() {
     // Create mock players with channels
     let (tx1, mut rx1) = mpsc::channel(32);
     let (tx2, mut rx2) = mpsc::channel(32);
@@ -84,7 +84,7 @@ async fn test_send_to_all_players() {
 }
 
 #[tokio::test]
-async fn test_handle_message_in_game_roll_action() {
+async fn handle_message_in_game_roll_action() {
     // Create a mock game with players
     let player_id = Uuid::new_v4();
     let (tx, _rx) = mpsc::channel(32);
@@ -101,7 +101,7 @@ async fn test_handle_message_in_game_roll_action() {
     }];
 
     // Create a mock server state
-    let mut active_games = std::collections::HashMap::new();
+    let mut active_games = HashMap::new();
     active_games.insert(game.id, game.clone());
     let state = Arc::new(ServerState {
         waiting_room: Mutex::new(WaitingRoom { players: vec![] }),
@@ -120,6 +120,5 @@ async fn test_handle_message_in_game_roll_action() {
 
     // The player position should have changed - this is hard to test deterministically
     // but we can verify the game still exists
-    let games = state.active_games.lock().await;
-    assert!(games.contains_key(&game.id));
+    assert!(state.active_games.lock().await.contains_key(&game.id));
 }

@@ -6,7 +6,7 @@ use tokio::sync::{mpsc, Mutex};
 use uuid::Uuid;
 
 #[tokio::test]
-async fn test_advance_turn() {
+async fn advance_turn() {
     // Create a game with multiple players
     let mut game = Game::default();
     let (tx1, _) = mpsc::channel(32);
@@ -50,7 +50,7 @@ async fn test_advance_turn() {
 }
 
 #[tokio::test]
-async fn test_advance_turn_with_bankrupt_player() {
+async fn advance_turn_with_bankrupt_player() {
     // Create a game with players including a bankrupt one
     let mut game = Game::default();
     let (tx1, _) = mpsc::channel(32);
@@ -101,7 +101,7 @@ async fn test_advance_turn_with_bankrupt_player() {
 }
 
 #[tokio::test]
-async fn test_start_new_game() {
+async fn start_new_game_works() {
     // Create server state with enough players in waiting room
     let (tx1, mut rx1) = mpsc::channel(32);
     let (tx2, mut rx2) = mpsc::channel(32);
@@ -140,12 +140,10 @@ async fn test_start_new_game() {
     start_new_game(Arc::clone(&state)).await;
 
     // Check that waiting room is empty
-    let waiting_room = state.waiting_room.lock().await;
-    assert!(waiting_room.players.is_empty());
+    assert!(state.waiting_room.lock().await.players.is_empty());
 
     // Check that active games has one game
-    let active_games = state.active_games.lock().await;
-    assert_eq!(active_games.len(), 1);
+    assert_eq!(state.active_games.lock().await.len(), 1);
 
     // Check that both players received game start message
     let msg1 = rx1.recv().await.unwrap();

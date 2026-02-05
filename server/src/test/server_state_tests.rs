@@ -6,20 +6,18 @@ use tokio_test::block_on;
 use uuid::Uuid;
 
 #[test]
-fn test_server_state_creation() {
+fn server_state_creation() {
     let state = ServerState::new();
 
     // Verify waiting room is empty
-    let waiting_room = block_on(state.waiting_room.lock());
-    assert!(waiting_room.players.is_empty());
+    assert!(block_on(state.waiting_room.lock()).players.is_empty());
 
     // Verify active games is empty
-    let active_games = block_on(state.active_games.lock());
-    assert!(active_games.is_empty());
+    assert!(block_on(state.active_games.lock()).is_empty());
 }
 
 #[tokio::test]
-async fn test_server_state_concurrent_access() {
+async fn server_state_concurrent_access() {
     let state = Arc::new(ServerState::new());
     let state_clone = Arc::clone(&state);
 

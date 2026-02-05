@@ -12,7 +12,7 @@ async fn test_roll_dice() {
 
     game.players = vec![Player {
         id: player_id,
-        name: "TestPlayer".to_string(),
+        name: "TestPlayer".to_owned(),
         tx,
         money: 1500,
         position: 0,
@@ -46,7 +46,7 @@ async fn test_roll_dice_in_jail() {
 
     game.players = vec![Player {
         id: player_id,
-        name: "JailedPlayer".to_string(),
+        name: "JailedPlayer".to_owned(),
         tx,
         money: 1500,
         position: 10, // Jail position
@@ -81,7 +81,7 @@ async fn test_buy_property() {
 
     game.players = vec![Player {
         id: player_id,
-        name: "Buyer".to_string(),
+        name: "Buyer".to_owned(),
         tx,
         money: 1500,
         position: 1, // Position with property

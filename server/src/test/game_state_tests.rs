@@ -60,7 +60,7 @@ async fn test_advance_turn_with_bankrupt_player() {
     game.players = vec![
         Player {
             id: Uuid::new_v4(),
-            name: "Player1".to_string(),
+            name: "Player1".to_owned(),
             tx: tx1,
             money: 1500,
             position: 0,
@@ -70,7 +70,7 @@ async fn test_advance_turn_with_bankrupt_player() {
         },
         Player {
             id: Uuid::new_v4(),
-            name: "BankruptPlayer".to_string(),
+            name: "BankruptPlayer".to_owned(),
             tx: tx2,
             money: 0,
             position: 0,
@@ -80,7 +80,7 @@ async fn test_advance_turn_with_bankrupt_player() {
         },
         Player {
             id: Uuid::new_v4(),
-            name: "Player3".to_string(),
+            name: "Player3".to_owned(),
             tx: tx3,
             money: 1500,
             position: 0,

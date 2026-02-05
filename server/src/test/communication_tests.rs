@@ -16,7 +16,7 @@ async fn test_send_message() {
     let (tx, mut rx) = mpsc::channel(32);
     let player = Player {
         id: Uuid::new_v4(),
-        name: "TestPlayer".to_string(),
+        name: "TestPlayer".to_owned(),
         tx,
         money: 1500,
         position: 0,
@@ -26,13 +26,13 @@ async fn test_send_message() {
     };
 
     // Send a test message
-    send_message(&player, Action::Roll, Some("test_data".to_string())).await;
+    send_message(&player, Action::Roll, Some("test_data".to_owned())).await;
 
     // Verify the message was sent correctly
     let received_msg = rx.recv().await.unwrap();
     let expected_action = PlayerAction {
         action_type: Action::Roll,
-        data: Some("test_data".to_string()),
+        data: Some("test_data".to_owned()),
     };
     let expected_msg = serde_json::to_string(&expected_action).unwrap() + "\n";
     assert_eq!(received_msg, expected_msg);
@@ -47,7 +47,7 @@ async fn test_send_to_all_players() {
     let players = vec![
         Player {
             id: Uuid::new_v4(),
-            name: "Player1".to_string(),
+            name: "Player1".to_owned(),
             tx: tx1,
             money: 1500,
             position: 0,
@@ -57,7 +57,7 @@ async fn test_send_to_all_players() {
         },
         Player {
             id: Uuid::new_v4(),
-            name: "Player2".to_string(),
+            name: "Player2".to_owned(),
             tx: tx2,
             money: 1500,
             position: 0,
@@ -68,17 +68,12 @@ async fn test_send_to_all_players() {
     ];
 
     // Send a message to all players
-    send_to_all_players(
-        &players,
-        Action::GameStart,
-        Some("game_started".to_string()),
-    )
-    .await;
+    send_to_all_players(&players, Action::GameStart, Some("game_started".to_owned())).await;
 
     // Verify both players received the message
     let expected_action = PlayerAction {
         action_type: Action::GameStart,
-        data: Some("game_started".to_string()),
+        data: Some("game_started".to_owned()),
     };
     let expected_msg = serde_json::to_string(&expected_action).unwrap() + "\n";
 
@@ -94,7 +89,7 @@ async fn test_handle_message_in_game_roll_action() {
     let mut game = Game::default();
     game.players = vec![Player {
         id: player_id,
-        name: "TestPlayer".to_string(),
+        name: "TestPlayer".to_owned(),
         tx,
         money: 1500,
         position: 0,

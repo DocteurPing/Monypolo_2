@@ -30,9 +30,18 @@ pub(crate) async fn send_message(player: &Player, action: Action, data: Option<S
 }
 
 pub(crate) async fn handle_message_in_game(message: &str, state: &Arc<ServerState>, uuid: Uuid) {
-    let action: PlayerAction = serde_json::from_str(message).unwrap();
+    let action: PlayerAction = match serde_json::from_str(message) {
+        Ok(action) => action,
+        Err(e) => {
+            log::warn!(
+                "Player {uuid} sent an invalid message ({e}): {}",
+                message.trim()
+            );
+            return;
+        }
+    };
     let mut active_games = state.active_games.lock().await;
-    for (_, game) in active_games.iter_mut() {
+    for game in active_games.values_mut() {
         if game.players[game.player_turn].id == uuid {
             match action.action_type {
                 Action::Roll => {
@@ -67,8 +76,13 @@ pub(crate) async fn handle_message_in_game(message: &str, state: &Arc<ServerStat
     }
 }
 
-pub(crate) async fn handle_message(message: &str, _state: &Arc<ServerState>, _uuid: Uuid) {
-    let _action: PlayerAction = serde_json::from_str(message).unwrap();
+pub(crate) async fn handle_message(message: &str, _state: &Arc<ServerState>, uuid: Uuid) {
+    if let Err(e) = serde_json::from_str::<PlayerAction>(message) {
+        log::warn!(
+            "Player {uuid} sent an invalid message ({e}): {}",
+            message.trim()
+        );
+    }
 }
 
 pub(crate) async fn handle_connection(socket: TcpStream, state: Arc<ServerState>) {
@@ -76,10 +90,29 @@ pub(crate) async fn handle_connection(socket: TcpStream, state: Arc<ServerState>
     let mut reader = BufReader::new(reader);
     let mut buf = String::new();
 
-    reader.read_line(&mut buf).await.unwrap();
-    let player_action: PlayerAction = serde_json::from_str(&buf).unwrap();
+    match reader.read_line(&mut buf).await {
+        Ok(0) => {
+            log::debug!("Player disconnected before identifying");
+            return;
+        }
+        Ok(_) => {}
+        Err(e) => {
+            log::error!("Error reading identify message: {e}");
+            return;
+        }
+    }
+    let player_action: PlayerAction = match serde_json::from_str(&buf) {
+        Ok(action) => action,
+        Err(e) => {
+            log::error!("Invalid identify message ({e}): {}", buf.trim());
+            return;
+        }
+    };
     buf.clear();
-    let name = player_action.data.unwrap();
+    let Some(name) = player_action.data else {
+        log::error!("Player did not provide a name in identify message");
+        return;
+    };
 
     let (tx, mut rx) = mpsc::channel(32); // Player's message channel
     let player = Player::default(tx, name);
@@ -91,7 +124,14 @@ pub(crate) async fn handle_connection(socket: TcpStream, state: Arc<ServerState>
     // Handle client messages
     loop {
         tokio::select! {
-            Ok(len) = reader.read_line(&mut buf) => {
+            result = reader.read_line(&mut buf) => {
+                let len = match result {
+                    Ok(len) => len,
+                    Err(e) => {
+                        log::error!("Error reading from player {player_id}: {e}");
+                        break;
+                    }
+                };
                 let mut waiting_room = state.waiting_room.lock().await;
                 if len == 0 {
                     log::debug!("Player {player_id} disconnected");
@@ -101,7 +141,7 @@ pub(crate) async fn handle_connection(socket: TcpStream, state: Arc<ServerState>
                         log::debug!("Players {:?}", waiting_room.players);
                     } else {
                         let mut games = state.active_games.lock().await;
-                        for (_, game) in games.iter_mut() {
+                        for game in games.values_mut() {
                             let is_player_turn = game.players[game.player_turn].id == player_id;
                             game.players.retain(|player| player.id != player_id);
                             log::debug!("Player {player_id} left the game. Total player in the game: {}", game.players.len());
@@ -128,7 +168,10 @@ pub(crate) async fn handle_connection(socket: TcpStream, state: Arc<ServerState>
                 buf.clear();
             }
             Some(msg) = rx.recv() => {
-                writer.write_all(msg.as_bytes()).await.unwrap();
+                if let Err(e) = writer.write_all(msg.as_bytes()).await {
+                    log::error!("Error writing to player {player_id}: {e}");
+                    break;
+                }
             }
         }
     }
